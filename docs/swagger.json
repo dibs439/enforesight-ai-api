@@ -1,0 +1,6139 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Enforesight API",
+    "version": "1.0.0",
+    "description": "Regulatory enforcement intelligence platform — REST API for customer portal, admin panel, and AI chat.",
+    "contact": {
+      "name": "Enforesight Engineering"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Versioned API (v1)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Admin endpoints: supply a JWT obtained from POST /api/admin/users/login. Customer endpoints: supply a Clerk session token."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Internal Server Error"
+          },
+          "message": {
+            "type": "string",
+            "example": "Something went wrong."
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "OK"
+          },
+          "message": {
+            "type": "string",
+            "example": "Server is running"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "environment": {
+            "type": "string",
+            "example": "production"
+          },
+          "dependencies": {
+            "type": "object",
+            "properties": {
+              "convex": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "degraded",
+                  "unconfigured"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@enforesight.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "P@ssw0rd123!"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT access token"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "admin",
+                  "editor"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "Enforcement": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "jurisdiction": {
+            "type": "string"
+          },
+          "regulatorName": {
+            "type": "string"
+          },
+          "subjectName": {
+            "type": "string"
+          },
+          "sector": {
+            "type": "string"
+          },
+          "dateOfAction": {
+            "type": "string",
+            "format": "date"
+          },
+          "field": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "fineAmount": {
+            "type": "number"
+          },
+          "enforcementActionType": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "violationTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enforcementNoticeUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "enforcementNoticeData": {
+            "type": "string"
+          },
+          "enforcementFile": {
+            "type": "string"
+          }
+        }
+      },
+      "Regulator": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Client": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "company": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ContentRecord": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "article",
+              "news",
+              "update"
+            ]
+          },
+          "isPublished": {
+            "type": "boolean"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminUser": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "editor"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "subscriptionTier": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "isSuspended": {
+            "type": "boolean"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "occupation": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Validation failed"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "example": "email"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Invalid email format"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "invalid_string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "example": 340
+          },
+          "totalPages": {
+            "type": "integer",
+            "example": 17
+          }
+        }
+      },
+      "Conversation": {
+        "type": "object",
+        "description": "An AI chat conversation thread",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "k57abc123def456ghi789"
+          },
+          "title": {
+            "type": "string",
+            "example": "SEC enforcement actions 2025"
+          },
+          "pinned": {
+            "type": "boolean",
+            "example": false
+          },
+          "archived": {
+            "type": "boolean",
+            "example": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConversationMessage": {
+        "type": "object",
+        "description": "A single message within an AI chat conversation",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "m5xabc987def321ghi"
+          },
+          "conversationId": {
+            "type": "string",
+            "example": "k57abc123def456ghi789"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "example": "assistant"
+          },
+          "content": {
+            "type": "string",
+            "example": "The SEC has taken 47 enforcement actions in Q1 2025..."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerConversation": {
+        "type": "object",
+        "description": "A customer support conversation record",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "conv_abc123def456"
+          },
+          "customerId": {
+            "type": "string",
+            "example": "cust_xyz789"
+          },
+          "message": {
+            "type": "string",
+            "example": "I need help understanding the FCA sanctions"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "pending"
+            ],
+            "example": "open"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Server health and status"
+    },
+    {
+      "name": "Auth",
+      "description": "Admin authentication"
+    },
+    {
+      "name": "Admin - Users",
+      "description": "User management (admin JWT)"
+    },
+    {
+      "name": "Admin - Enforcements",
+      "description": "Enforcement record management (admin JWT)"
+    },
+    {
+      "name": "Admin - Regulators",
+      "description": "Regulator management (admin JWT)"
+    },
+    {
+      "name": "Admin - Clients",
+      "description": "Client management (admin JWT)"
+    },
+    {
+      "name": "Admin - Content",
+      "description": "Content management (admin JWT)"
+    },
+    {
+      "name": "Admin - Customers",
+      "description": "Customer account management (admin JWT)"
+    },
+    {
+      "name": "Admin - Dashboard",
+      "description": "Dashboard statistics"
+    },
+    {
+      "name": "Customer Portal",
+      "description": "Customer-facing endpoints (Clerk auth)"
+    },
+    {
+      "name": "Customer Profile",
+      "description": "Customer profile and session management (Clerk auth)"
+    },
+    {
+      "name": "Customer Conversations",
+      "description": "Customer conversation management (Clerk auth)"
+    },
+    {
+      "name": "AI Chat",
+      "description": "AI-powered conversation endpoints (Clerk or JWT)"
+    },
+    {
+      "name": "Content",
+      "description": "Public content pages and slugs"
+    },
+    {
+      "name": "Clients",
+      "description": "Active client listing"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Incoming webhook endpoints"
+    },
+    {
+      "name": "Reference Data",
+      "description": "Countries, currencies, sectors, violation types, etc."
+    }
+  ],
+  "paths": {
+    "/api": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "API root — lists available endpoints",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API info and endpoint directory"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Returns server health status and dependency reachability. No auth required.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more dependencies are unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/violation-types": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all violation types",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of violation type objects"
+          }
+        }
+      }
+    },
+    "/violation-types/search": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "Search violation types",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching violation types"
+          }
+        }
+      }
+    },
+    "/violation-types/categories": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List violation type categories",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of category names"
+          }
+        }
+      }
+    },
+    "/sectors": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all industry sectors",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of sector objects"
+          }
+        }
+      }
+    },
+    "/sectors/search": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "Search sectors by name",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching sectors"
+          }
+        }
+      }
+    },
+    "/sectors/categories": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List sector categories",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of category names"
+          }
+        }
+      }
+    },
+    "/regulators": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all regulators",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of regulator objects"
+          }
+        }
+      }
+    },
+    "/regulators/{id}": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "Get a regulator by ID",
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Regulator object"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/fields": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all available enforcement record field definitions",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of field definition objects"
+          }
+        }
+      }
+    },
+    "/enforcement-action-types": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all enforcement action types",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of enforcement action type objects"
+          }
+        }
+      }
+    },
+    "/enforcement-action-types/search": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "Search enforcement action types",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching enforcement action types"
+          }
+        }
+      }
+    },
+    "/enforcement-action-types/categories": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List enforcement action type categories",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of category names"
+          }
+        }
+      }
+    },
+    "/currencies": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all currencies",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of currency objects"
+          }
+        }
+      }
+    },
+    "/currencies/search": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "Search currencies by name or code",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching currencies"
+          }
+        }
+      }
+    },
+    "/currencies/categories": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List currency categories",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of category names"
+          }
+        }
+      }
+    },
+    "/currencies/major": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List major / widely-traded currencies",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of major currency objects"
+          }
+        }
+      }
+    },
+    "/countries": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "List all countries",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of country objects"
+          }
+        }
+      }
+    },
+    "/countries/search": {
+      "get": {
+        "tags": [
+          "Reference Data"
+        ],
+        "summary": "Search countries by name or code",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching countries"
+          }
+        }
+      }
+    },
+    "/customer/profile": {
+      "get": {
+        "tags": [
+          "Customer Profile"
+        ],
+        "summary": "Get the current user's profile from Clerk",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "user_2abc123def456"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email",
+                          "example": "john.doe@example.com"
+                        },
+                        "firstName": {
+                          "type": "string",
+                          "example": "John"
+                        },
+                        "lastName": {
+                          "type": "string",
+                          "example": "Doe"
+                        },
+                        "imageUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "publicMetadata": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Customer Profile"
+        ],
+        "summary": "Update the current user's profile",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string",
+                    "example": "John"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Doe"
+                  },
+                  "publicMetadata": {
+                    "type": "object",
+                    "description": "Arbitrary key-value metadata stored on the Clerk user",
+                    "example": {
+                      "occupation": "Compliance Officer"
+                    }
+                  }
+                }
+              },
+              "example": {
+                "firstName": "John",
+                "lastName": "Doe",
+                "publicMetadata": {
+                  "occupation": "Compliance Officer"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "user_2abc123def456"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "firstName": {
+                          "type": "string",
+                          "example": "John"
+                        },
+                        "lastName": {
+                          "type": "string",
+                          "example": "Doe"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/sessions": {
+      "get": {
+        "tags": [
+          "Customer Profile"
+        ],
+        "summary": "Get all active sessions for the current user",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of active session objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "sess_2xyz789abc"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "active"
+                          },
+                          "lastActiveAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expireAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/sessions/{sessionId}": {
+      "delete": {
+        "tags": [
+          "Customer Profile"
+        ],
+        "summary": "Revoke a specific session",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "sess_2xyz789abc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Session revoked"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/conversations/by-token/list": {
+      "get": {
+        "tags": [
+          "Customer Conversations"
+        ],
+        "summary": "Get conversations for the authenticated customer (token-based lookup)",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of customer conversation objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CustomerConversation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/conversations": {
+      "post": {
+        "tags": [
+          "Customer Conversations"
+        ],
+        "summary": "Create a new customer conversation",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Initial message to open the conversation with",
+                    "example": "I need help understanding the latest FCA sanctions"
+                  }
+                }
+              },
+              "example": {
+                "message": "I need help understanding the latest FCA sanctions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CustomerConversation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — message is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Customer Conversations"
+        ],
+        "summary": "List all conversations for the authenticated customer",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of customer conversation objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CustomerConversation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/conversations/{conversationId}": {
+      "get": {
+        "tags": [
+          "Customer Conversations"
+        ],
+        "summary": "Get a customer conversation by ID",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "conv_abc123def456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CustomerConversation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Customer Conversations"
+        ],
+        "summary": "Delete a customer conversation permanently",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "conv_abc123def456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Conversation deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/page/{page}": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "summary": "Get content by page identifier",
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Page identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content object for the given page"
+          },
+          "404": {
+            "description": "Content not found"
+          }
+        }
+      }
+    },
+    "/content/slug/{slug}": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "summary": "Get content by slug",
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "URL slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content object for the given slug"
+          },
+          "404": {
+            "description": "Content not found"
+          }
+        }
+      }
+    },
+    "/clients/active": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Get all active clients",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Array of active client objects"
+          }
+        }
+      }
+    },
+    "/ai/chat": {
+      "post": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Send a message to the AI assistant",
+        "description": "Accepts a **Clerk session token** or an **admin JWT** in the `Authorization: Bearer <token>` header.\nProvide `conversationId` to continue an existing conversation; omit it to start a new one.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The user's message to the AI assistant",
+                    "example": "What enforcement actions has the SEC taken against banks this year?"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "Optional — ID of an existing conversation to continue",
+                    "example": "k57abc123def456ghi789"
+                  }
+                }
+              },
+              "example": {
+                "message": "What enforcement actions has the SEC taken against banks this year?",
+                "conversationId": "k57abc123def456ghi789"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI-generated response with conversation context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "description": "AI-generated response text",
+                          "example": "The SEC has taken 47 enforcement actions against banks in 2025, totaling $2.1B in fines..."
+                        },
+                        "conversationId": {
+                          "type": "string",
+                          "description": "ID of the conversation (new or continued)",
+                          "example": "k57abc123def456ghi789"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "assistant"
+                          ],
+                          "example": "assistant"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — message field is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/conversations": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Get all conversations for the authenticated user",
+        "description": "Accepts a **Clerk session token** or an **admin JWT**.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of conversation objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Conversation"
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/conversations/{id}": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Get a specific conversation by ID",
+        "description": "Requires a **Clerk session token** (not admin JWT).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Conversation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Archive (soft-delete) a conversation",
+        "description": "Requires a **Clerk session token** (not admin JWT).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation archived successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Conversation archived"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/conversations/{conversationId}": {
+      "put": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Update the pinned status of a conversation",
+        "description": "Accepts a **Clerk session token** or an **admin JWT**.\nAlso available at the legacy singular path `/ai/chat/conversation/{conversationId}`.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pinned"
+                ],
+                "properties": {
+                  "pinned": {
+                    "type": "boolean",
+                    "description": "Set to true to pin, false to unpin",
+                    "example": true
+                  }
+                }
+              },
+              "example": {
+                "pinned": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversation updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Conversation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — pinned must be a boolean",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/history/{conversationId}": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Get paginated message history for a conversation",
+        "description": "Requires a **Clerk session token** (not admin JWT).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of messages per page"
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pagination cursor from a previous response"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated message history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ConversationMessage"
+                          }
+                        },
+                        "nextCursor": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Pass as `cursor` in the next request to fetch the previous page",
+                          "example": "msg_cursor_xyz"
+                        },
+                        "hasMore": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/export/{conversationId}": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Export a full conversation as a plain-text file",
+        "description": "Requires a **Clerk session token** (not admin JWT). Returns the conversation as a downloadable text file.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation exported as plain text",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "User: What is the SEC fine limit?\nAssistant: The SEC fine limit is..."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/messages/{messageId}/export": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Export a single AI message as plain text",
+        "description": "Accepts a **Clerk session token** or an **admin JWT**.\nAlso available at the legacy path `/ai/chat/message/{messageId}/export` (singular).\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "m5xabc987def321ghi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message content as plain text",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "The SEC announced a $450M fine against..."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/health": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "AI chat service health check",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "example": "ok"
+                        },
+                        "service": {
+                          "type": "string",
+                          "example": "ai-chat"
+                        },
+                        "timestamp": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "[Legacy] Get all conversations for the authenticated user",
+        "description": "**Deprecated** — use `GET /ai/chat/conversations` instead.\nAccepts a **Clerk session token** or an **admin JWT**.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of conversation objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Conversation"
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/portal/privacy-policy": {
+      "get": {
+        "tags": [
+          "Customer Portal"
+        ],
+        "summary": "Get the Privacy Policy content",
+        "description": "Public endpoint — no authentication required.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Privacy Policy content object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "k57abc123def456ghi789"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Privacy Policy"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "example": "privacy"
+                        },
+                        "body": {
+                          "type": "string",
+                          "example": "We collect the following data..."
+                        },
+                        "bullets": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "We do not sell your data",
+                            "Data is encrypted at rest"
+                          ]
+                        },
+                        "image": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "lastUpdated": {
+                          "type": "number",
+                          "example": 1710000000000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Privacy Policy not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/portal/terms-of-use": {
+      "get": {
+        "tags": [
+          "Customer Portal"
+        ],
+        "summary": "Get the Terms of Use content",
+        "description": "Public endpoint — no authentication required.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Terms of Use content object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "k57abc123def456ghi789"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Terms of Use"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "example": "terms"
+                        },
+                        "body": {
+                          "type": "string",
+                          "example": "By using this service you agree to..."
+                        },
+                        "bullets": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "You must be 18 or older",
+                            "No unauthorized use"
+                          ]
+                        },
+                        "image": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "lastUpdated": {
+                          "type": "number",
+                          "example": 1710000000000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Terms of Use not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/portal/legal-documents": {
+      "get": {
+        "tags": [
+          "Customer Portal"
+        ],
+        "summary": "Get both Privacy Policy and Terms of Use in a single request",
+        "description": "Public endpoint — no authentication required. Returns whichever documents are currently published.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Object containing the published legal documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "privacyPolicy": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "k57abc123def456ghi789"
+                            },
+                            "title": {
+                              "type": "string",
+                              "example": "Privacy Policy"
+                            },
+                            "slug": {
+                              "type": "string",
+                              "example": "privacy"
+                            },
+                            "body": {
+                              "type": "string",
+                              "example": "We collect the following data..."
+                            },
+                            "bullets": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "image": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "lastUpdated": {
+                              "type": "number",
+                              "example": 1710000000000
+                            }
+                          }
+                        },
+                        "termsOfUse": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "m8xyz987abc654def321"
+                            },
+                            "title": {
+                              "type": "string",
+                              "example": "Terms of Use"
+                            },
+                            "slug": {
+                              "type": "string",
+                              "example": "terms"
+                            },
+                            "body": {
+                              "type": "string",
+                              "example": "By using this service you agree to..."
+                            },
+                            "bullets": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "image": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "lastUpdated": {
+                              "type": "number",
+                              "example": 1710000000000
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No published legal documents found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/portal/enforcement/search": {
+      "post": {
+        "tags": [
+          "Customer Portal"
+        ],
+        "summary": "Advanced enforcements search with flexible filter parameters",
+        "description": "Requires a **Clerk session token** passed as a Bearer token in the Authorization header.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": {
+                    "type": "string",
+                    "description": "Free-text keyword search",
+                    "example": "insider trading"
+                  },
+                  "regulator": {
+                    "type": "string",
+                    "description": "Regulator Convex ID",
+                    "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+                  },
+                  "regulatorName": {
+                    "type": "string",
+                    "example": "SEC"
+                  },
+                  "jurisdiction": {
+                    "type": "string",
+                    "example": "United States"
+                  },
+                  "sector": {
+                    "type": "string",
+                    "example": "Finance"
+                  },
+                  "actionType": {
+                    "type": "string",
+                    "example": "Fine"
+                  },
+                  "violationType": {
+                    "type": "string",
+                    "example": "Market Manipulation"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "minFineAmount": {
+                    "type": "number",
+                    "example": 10000
+                  },
+                  "maxFineAmount": {
+                    "type": "number",
+                    "example": 5000000
+                  },
+                  "dateFrom": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2024-01-01"
+                  },
+                  "dateTo": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-12-31"
+                  },
+                  "page": {
+                    "type": "integer",
+                    "default": 1,
+                    "example": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "example": 20
+                  }
+                }
+              },
+              "example": {
+                "search": "insider trading",
+                "jurisdiction": "United States",
+                "sector": "Finance",
+                "page": 1,
+                "limit": 20
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Filtered enforcement results with pagination and AI-generated search description",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Enforcement"
+                          }
+                        },
+                        "pagination": {
+                          "$ref": "#/components/schemas/Pagination"
+                        },
+                        "searchDescription": {
+                          "type": "string",
+                          "example": "Found 12 enforcement actions in United States for the Finance sector"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — Clerk token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/portal/enforcement/{id}": {
+      "get": {
+        "tags": [
+          "Customer Portal"
+        ],
+        "summary": "Get enforcement details by ID (generates AI summary if not cached)",
+        "description": "Public endpoint — no authentication required. An AI summary is generated and cached on first access.",
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enforcement detail object with AI summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Enforcement"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Enforcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/clerk": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Receive Clerk webhook events (user created, updated, deleted)",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Clerk webhook event payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed successfully"
+          },
+          "400": {
+            "description": "Invalid payload"
+          }
+        }
+      }
+    },
+    "/admin/users/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Admin login",
+        "description": "Authenticate an admin user and receive a JWT token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many login attempts"
+          }
+        }
+      }
+    },
+    "/admin/users/activate/{code}": {
+      "get": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Validate an activation code (from email link)",
+        "security": [],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Activation code received in email",
+            "example": "abc123xyz789def456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activation code is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Activation code is valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired activation code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/activate": {
+      "post": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Complete account activation with an activation code and new password",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "activationCode",
+                  "password"
+                ],
+                "properties": {
+                  "activationCode": {
+                    "type": "string",
+                    "description": "Activation code received via email",
+                    "example": "abc123xyz789def456"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "description": "New password for the account",
+                    "example": "MySecureP@ss1"
+                  }
+                }
+              },
+              "example": {
+                "activationCode": "abc123xyz789def456",
+                "password": "MySecureP@ss1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Account activated successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired activation code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/resend-activation": {
+      "post": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Resend activation email to a user",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "jane.smith@example.com"
+                  }
+                }
+              },
+              "example": {
+                "email": "jane.smith@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activation email resent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Activation email sent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/set-password": {
+      "post": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Set a new password using an activation code (same as activate)",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "activationCode",
+                  "password"
+                ],
+                "properties": {
+                  "activationCode": {
+                    "type": "string",
+                    "description": "Activation code received via email",
+                    "example": "abc123xyz789def456"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "description": "New password for the account",
+                    "example": "MySecureP@ss1"
+                  }
+                }
+              },
+              "example": {
+                "activationCode": "abc123xyz789def456",
+                "password": "MySecureP@ss1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password set successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Password set successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired activation code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "List all admin users",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by name or email"
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated user list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminUser"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Create a new admin user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "firstName",
+                  "lastName",
+                  "role"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "jane.smith@example.com"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "Jane"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Smith"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "editor"
+                    ],
+                    "example": "editor"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true,
+                    "example": true
+                  }
+                }
+              },
+              "example": {
+                "email": "jane.smith@example.com",
+                "firstName": "Jane",
+                "lastName": "Smith",
+                "role": "editor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created — activation email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}": {
+      "get": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Get a user by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Admin user object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Update a user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "jane.smith@example.com"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "Jane"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Smith"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "editor"
+                    ],
+                    "example": "admin"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Delete a user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "User deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/password": {
+      "patch": {
+        "tags": [
+          "Admin - Users"
+        ],
+        "summary": "Update a user's password (admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "NewSecureP@ss1"
+                  }
+                }
+              },
+              "example": {
+                "password": "NewSecureP@ss1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Password updated successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/regulators": {
+      "get": {
+        "tags": [
+          "Admin - Regulators"
+        ],
+        "summary": "List all regulators (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated regulator list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Regulator"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Regulators"
+        ],
+        "summary": "Create a new regulator",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "country",
+                  "currency"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Regulator name",
+                    "example": "Financial Conduct Authority"
+                  },
+                  "country": {
+                    "type": "string",
+                    "description": "Country code or name",
+                    "example": "United Kingdom"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Default currency code",
+                    "example": "GBP"
+                  },
+                  "active": {
+                    "type": "boolean",
+                    "default": true,
+                    "example": true
+                  }
+                }
+              },
+              "example": {
+                "name": "Financial Conduct Authority",
+                "country": "United Kingdom",
+                "currency": "GBP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Regulator created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Regulator"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A regulator with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/regulators/{id}": {
+      "get": {
+        "tags": [
+          "Admin - Regulators"
+        ],
+        "summary": "Get a regulator by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Regulator object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Regulator"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Regulators"
+        ],
+        "summary": "Update a regulator",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Financial Conduct Authority"
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "United Kingdom"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "GBP"
+                  },
+                  "active": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Regulator updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Regulator"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate regulator name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Regulators"
+        ],
+        "summary": "Delete a regulator",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Regulator deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Regulator deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/enforcements": {
+      "get": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "List enforcements with optional filtering and pagination",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "regulator",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "jurisdiction",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sector",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated enforcement list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Enforcement"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "Create an enforcement record (multipart/form-data, optional PDF)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "documentId",
+                  "jurisdiction",
+                  "regulatorName",
+                  "subjectName",
+                  "sector",
+                  "dateOfAction",
+                  "field",
+                  "currency",
+                  "fineAmount",
+                  "enforcementActionType",
+                  "violationTypes"
+                ],
+                "properties": {
+                  "documentId": {
+                    "type": "string",
+                    "description": "Unique document identifier",
+                    "example": "DOC-2025-001"
+                  },
+                  "jurisdiction": {
+                    "type": "string",
+                    "description": "Jurisdiction country or region",
+                    "example": "United States"
+                  },
+                  "regulatorName": {
+                    "type": "string",
+                    "description": "Name of the regulating authority",
+                    "example": "SEC"
+                  },
+                  "subjectName": {
+                    "type": "string",
+                    "description": "Name of the entity subject to enforcement",
+                    "example": "Acme Trading Ltd"
+                  },
+                  "sector": {
+                    "type": "string",
+                    "description": "Industry sector",
+                    "example": "Finance"
+                  },
+                  "dateOfAction": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Date of enforcement action (YYYY-MM-DD)",
+                    "example": "2025-03-15"
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Field of law or regulation",
+                    "example": "Securities"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Currency code for the fine",
+                    "example": "USD"
+                  },
+                  "fineAmount": {
+                    "type": "number",
+                    "description": "Fine amount (non-negative)",
+                    "example": 250000
+                  },
+                  "enforcementActionType": {
+                    "type": "string",
+                    "description": "Action type(s). Submit a single value (e.g. `Fine`) or comma-separated values (e.g. `Fine,Suspension`) — parsed server-side into an array.",
+                    "example": "Fine"
+                  },
+                  "violationTypes": {
+                    "type": "string",
+                    "description": "Violation type(s). Submit a single value (e.g. `Market Manipulation`) or comma-separated values — parsed server-side into an array.",
+                    "example": "Market Manipulation"
+                  },
+                  "enforcementNoticeUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Public URL to the enforcement notice (optional if file is uploaded)",
+                    "example": "https://www.sec.gov/litigation/admin/2025/some-notice.pdf"
+                  },
+                  "enforcementNoticeData": {
+                    "type": "string",
+                    "description": "Raw text content of the enforcement notice"
+                  },
+                  "enforcementFile": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF file upload (optional if URL is provided)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enforcement record created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Enforcement"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or file upload failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/enforcements/bulk-upload": {
+      "post": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "Bulk upload enforcement records from a CSV file",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk upload result summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "integer",
+                          "example": 42
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "errors": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "row": {
+                                "type": "integer",
+                                "example": 5
+                              },
+                              "message": {
+                                "type": "string",
+                                "example": "Missing required field: fineAmount"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "File upload error or invalid CSV",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/enforcements/templates/{templateName}": {
+      "get": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "Download a CSV bulk-upload template",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateName",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "enforcement-bulk-upload-template.csv",
+                "enforcement-bulk-upload-headers.csv"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        }
+      }
+    },
+    "/admin/enforcements/{id}": {
+      "get": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "Get an enforcement record by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enforcement record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Enforcement"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "Update an enforcement record (multipart/form-data, optional PDF)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documentId": {
+                    "type": "string",
+                    "example": "DOC-2025-001"
+                  },
+                  "jurisdiction": {
+                    "type": "string",
+                    "example": "United States"
+                  },
+                  "regulatorName": {
+                    "type": "string",
+                    "example": "SEC"
+                  },
+                  "subjectName": {
+                    "type": "string",
+                    "example": "Acme Trading Ltd"
+                  },
+                  "sector": {
+                    "type": "string",
+                    "example": "Finance"
+                  },
+                  "dateOfAction": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-03-15"
+                  },
+                  "field": {
+                    "type": "string",
+                    "example": "Securities"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "fineAmount": {
+                    "type": "number",
+                    "example": 250000
+                  },
+                  "enforcementActionType": {
+                    "type": "string",
+                    "description": "Action type(s). Submit a single value (e.g. `Fine`) or comma-separated values (e.g. `Fine,Suspension`) — parsed server-side into an array.",
+                    "example": "Fine"
+                  },
+                  "violationTypes": {
+                    "type": "string",
+                    "description": "Violation type(s). Submit a single value or comma-separated values — parsed server-side into an array.",
+                    "example": "Market Manipulation"
+                  },
+                  "enforcementNoticeUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://www.sec.gov/litigation/admin/2025/some-notice.pdf"
+                  },
+                  "enforcementNoticeData": {
+                    "type": "string"
+                  },
+                  "enforcementFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enforcement record updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Enforcement"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or file upload failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Enforcements"
+        ],
+        "summary": "Delete an enforcement record",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "jsgvmtb9fh0hwfm3bxcxm6fd3s77cks0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enforcement record deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Enforcement deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": [
+          "Admin - Dashboard"
+        ],
+        "summary": "Get dashboard statistics",
+        "description": "Returns aggregated statistics for customers and enforcements. Requires admin JWT.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "customers": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "example": 1240
+                            },
+                            "active": {
+                              "type": "integer",
+                              "example": 1100
+                            },
+                            "suspended": {
+                              "type": "integer",
+                              "example": 140
+                            },
+                            "newThisMonth": {
+                              "type": "integer",
+                              "example": 37
+                            }
+                          }
+                        },
+                        "enforcements": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "example": 8760
+                            },
+                            "newThisMonth": {
+                              "type": "integer",
+                              "example": 124
+                            },
+                            "totalFineAmount": {
+                              "type": "number",
+                              "example": 4520000000
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/customers/stats": {
+      "get": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Get aggregate customer statistics",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "example": 1240
+                        },
+                        "active": {
+                          "type": "integer",
+                          "example": 1100
+                        },
+                        "suspended": {
+                          "type": "integer",
+                          "example": 140
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/customers/sync": {
+      "post": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Sync customers from Clerk to the database",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sync result summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "synced": {
+                          "type": "integer",
+                          "example": 45
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "errors": {
+                          "type": "integer",
+                          "example": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/customers": {
+      "get": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "List all customers with optional search and pagination",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by name or email"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of customers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Customer"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Create a new customer account",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john.doe@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "example": "Secur3P@ss!"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "John"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Doe"
+                  },
+                  "subscriptionTier": {
+                    "type": "string",
+                    "example": "professional"
+                  },
+                  "active": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "phoneNumber": {
+                    "type": "string",
+                    "example": "+1-555-0100"
+                  },
+                  "occupation": {
+                    "type": "string",
+                    "example": "Compliance Officer"
+                  },
+                  "isSuspended": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "example": {
+                "email": "john.doe@example.com",
+                "password": "Secur3P@ss!",
+                "firstName": "John",
+                "lastName": "Doe",
+                "subscriptionTier": "professional"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Customer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/customers/{id}": {
+      "get": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Get a customer by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "j57d8f2c3e1a4b9e0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Customer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Replace a customer record",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "j57d8f2c3e1a4b9e0"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john.doe@example.com"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "John"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Doe"
+                  },
+                  "subscriptionTier": {
+                    "type": "string",
+                    "example": "enterprise"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "imageUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "phoneNumber": {
+                    "type": "string",
+                    "example": "+1-555-0100"
+                  },
+                  "occupation": {
+                    "type": "string",
+                    "example": "Chief Compliance Officer"
+                  },
+                  "isSuspended": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated customer object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Customer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Partially update a customer (e.g. suspend or unsuspend)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "j57d8f2c3e1a4b9e0"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isSuspended"
+                ],
+                "properties": {
+                  "isSuspended": {
+                    "type": "boolean",
+                    "description": "Set to true to suspend, false to unsuspend",
+                    "example": true
+                  }
+                }
+              },
+              "example": {
+                "isSuspended": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer patched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Customer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Customers"
+        ],
+        "summary": "Delete a customer permanently",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "j57d8f2c3e1a4b9e0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Customer deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/contents": {
+      "get": {
+        "tags": [
+          "Admin - Content"
+        ],
+        "summary": "List all content records",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated content list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ContentRecord"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Content"
+        ],
+        "summary": "Create a new content record",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "content",
+                  "type"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Content title",
+                    "example": "Privacy Policy"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Main content body",
+                    "example": "We collect the following personal data..."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "article",
+                      "news",
+                      "update"
+                    ],
+                    "example": "article"
+                  },
+                  "isPublished": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "publishedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-06-01T00:00:00.000Z"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "privacy",
+                      "legal"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "title": "Privacy Policy",
+                "content": "We collect the following personal data...",
+                "type": "article",
+                "isPublished": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Content record created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentRecord"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/contents/{id}": {
+      "get": {
+        "tags": [
+          "Admin - Content"
+        ],
+        "summary": "Get a content record by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentRecord"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Content"
+        ],
+        "summary": "Update a content record",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Privacy Policy"
+                  },
+                  "content": {
+                    "type": "string",
+                    "example": "Updated policy text..."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "article",
+                      "news",
+                      "update"
+                    ],
+                    "example": "article"
+                  },
+                  "isPublished": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "publishedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-06-01T00:00:00.000Z"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "privacy",
+                      "legal"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Content record updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ContentRecord"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Content"
+        ],
+        "summary": "Delete a content record",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Content record deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Content deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/clients": {
+      "get": {
+        "tags": [
+          "Admin - Clients"
+        ],
+        "summary": "List all clients",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated client list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Client"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Clients"
+        ],
+        "summary": "Create a new client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Client name",
+                    "example": "Acme Corp"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "contact@acme.com"
+                  },
+                  "company": {
+                    "type": "string",
+                    "example": "Acme Corporation"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "+14155552671"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true,
+                    "example": true
+                  }
+                }
+              },
+              "example": {
+                "name": "Acme Corp",
+                "email": "contact@acme.com",
+                "company": "Acme Corporation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Client created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/clients/{id}": {
+      "get": {
+        "tags": [
+          "Admin - Clients"
+        ],
+        "summary": "Get a client by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Clients"
+        ],
+        "summary": "Update a client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Acme Corp"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "contact@acme.com"
+                  },
+                  "company": {
+                    "type": "string",
+                    "example": "Acme Corporation"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "+14155552671"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Client updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Clients"
+        ],
+        "summary": "Delete a client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "k57abc123def456ghi789"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Client deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

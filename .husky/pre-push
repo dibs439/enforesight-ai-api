@@ -1,0 +1,9 @@
+# Run tests before pushing
+echo "🧪 Running tests before push..."
+npm test
+
+# Run build to ensure everything compiles
+echo "🏗️ Building project to ensure compilation..."
+npm run build
+
+echo "✅ Pre-push checks completed successfully!"

@@ -1,0 +1,172 @@
+# GitLab CI/CD Configuration for Enforesight API
+# Node.js TypeScript Express.js project
+#
+# Pipeline execution:
+#   Merge requests:  install → validate → test → security
+#   stage-x.y.z:    install → validate → test → build → deploy (staging)
+#   release-x.y.z:  install → validate → test → build → deploy (production)
+#
+# Required GitLab CI/CD variables:
+#   RENDER_STAGING_DEPLOY_HOOK    - Render deploy hook URL for the staging service
+#   RENDER_PRODUCTION_DEPLOY_HOOK - Render deploy hook URL for the production service
+#   (Add under Settings → CI/CD → Variables, mark as Protected + Masked)
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG =~ /^stage-\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^release-\d+\.\d+\.\d+$/
+    - when: never
+
+stages:
+  - install
+  - validate
+  - test
+  - build
+  - security
+  - deploy
+
+variables:
+  NODE_VERSION: '20'
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+# ==================== INSTALL STAGE ====================
+
+install_dependencies:
+  stage: install
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci --cache .npm --prefer-offline --no-audit
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+    policy: pull-push
+
+# ==================== VALIDATE STAGE ====================
+
+lint:
+  stage: validate
+  image: node:${NODE_VERSION}
+  dependencies:
+    - install_dependencies
+  script:
+    - node scripts/prebuild.js
+    - npm run lint
+
+type-check:
+  stage: validate
+  image: node:${NODE_VERSION}
+  dependencies:
+    - install_dependencies
+  script:
+    - node scripts/prebuild.js
+    - npm run type-check
+
+# ==================== TEST STAGE ====================
+
+test:
+  stage: test
+  image: node:${NODE_VERSION}
+  dependencies:
+    - install_dependencies
+  variables:
+    OPENAI_API_KEY: 'test-dummy-key'
+    CLERK_SECRET_KEY: 'test-dummy-key'
+    JWT_SECRET: 'test-dummy-secret'
+  script:
+    - npm run test:coverage
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+
+# ==================== BUILD STAGE ====================
+
+build:
+  stage: build
+  image: node:${NODE_VERSION}
+  dependencies:
+    - install_dependencies
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^stage-\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^release-\d+\.\d+\.\d+$/
+
+# ==================== SECURITY STAGE ====================
+
+sast:
+  stage: security
+  variables:
+    SAST_EXCLUDED_PATHS: 'spec,test,tests,tmp,node_modules'
+
+secret_detection:
+  stage: security
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+# ==================== DEPLOY STAGE ====================
+
+deploy:staging:
+  stage: deploy
+  image: curlimages/curl:latest
+  dependencies:
+    - build
+  script:
+    - echo "Triggering staging deployment on Render (tag $CI_COMMIT_TAG)..."
+    - |
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$RENDER_STAGING_DEPLOY_HOOK")
+      if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ] && [ "$HTTP_STATUS" != "202" ]; then
+        echo "Deploy hook failed with HTTP status: $HTTP_STATUS"
+        exit 1
+      fi
+    - echo "Staging deployment triggered successfully."
+  environment:
+    name: staging
+    url: https://stage.api.enforesight.ai
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^stage-\d+\.\d+\.\d+$/
+
+deploy:production:
+  stage: deploy
+  image: curlimages/curl:latest
+  dependencies:
+    - build
+  script:
+    - echo "Triggering production deployment on Render (tag $CI_COMMIT_TAG)..."
+    - |
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$RENDER_PRODUCTION_DEPLOY_HOOK")
+      if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ] && [ "$HTTP_STATUS" != "202" ]; then
+        echo "Deploy hook failed with HTTP status: $HTTP_STATUS"
+        exit 1
+      fi
+    - echo "Production deployment triggered successfully."
+  environment:
+    name: production
+    url: https://api.enforesight.ai
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^release-\d+\.\d+\.\d+$/

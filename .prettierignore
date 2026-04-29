@@ -1,0 +1,26 @@
+# Ignore artifacts:
+build
+coverage
+dist
+
+# Ignore node_modules
+node_modules
+
+# Ignore generated files
+*.log
+*.tmp
+*.temp
+
+# Ignore configuration files that shouldn't be formatted
+package-lock.json
+yarn.lock
+.env
+.env.*
+
+# Ignore IDE files
+.vscode
+.idea
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

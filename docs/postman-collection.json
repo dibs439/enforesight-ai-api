@@ -1,0 +1,1269 @@
+{
+  "info": {
+    "name": "Enforesight API",
+    "description": "Regulatory enforcement intelligence platform — full REST API collection.\n\n**Authentication:**\n- Admin endpoints: obtain a JWT via `POST /admin/users/login`, then set `{{adminToken}}`\n- Customer/AI Chat endpoints: obtain a Clerk session token, then set `{{clerkToken}}`\n\n**Variables:** Set `baseUrl`, `adminToken`, and `clerkToken` in the collection or environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "enforesight-api-v1"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT from POST /admin/users/login"
+    },
+    {
+      "key": "clerkToken",
+      "value": "",
+      "type": "string",
+      "description": "Clerk session token"
+    },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "enforcementId", "value": "", "type": "string" },
+    { "key": "regulatorId", "value": "", "type": "string" },
+    { "key": "clientId", "value": "", "type": "string" },
+    { "key": "contentId", "value": "", "type": "string" },
+    { "key": "customerId", "value": "", "type": "string" },
+    { "key": "conversationId", "value": "", "type": "string" },
+    { "key": "messageId", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "description": "Server health and status checks",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Returns server status, environment, and dependency health."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Admin authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token) pm.collectionVariables.set('adminToken', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "login"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@enforesight.com\",\n  \"password\": \"P@ssw0rd123!\"\n}"
+            },
+            "description": "Authenticate an admin user and receive a JWT token. The test script auto-saves the token to `{{adminToken}}`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Users",
+      "description": "Admin user management. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "Validate Activation Code",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/activate/{{activationCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "activate", "{{activationCode}}"]
+            },
+            "description": "Validate an activation code received via email."
+          }
+        },
+        {
+          "name": "Activate Account",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "activate"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activationCode\": \"abc123xyz789def456\",\n  \"password\": \"MySecureP@ss1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Resend Activation Email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/resend-activation",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "resend-activation"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.smith@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Set Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/set-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "set-password"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activationCode\": \"abc123xyz789def456\",\n  \"password\": \"MySecureP@ss1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "country", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.smith@example.com\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"role\": \"editor\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"role\": \"admin\",\n  \"isActive\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User Password",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "password"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewSecureP@ss1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Enforcements",
+      "description": "Enforcement record management. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "List Enforcements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "enforcements"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "regulator", "value": "", "disabled": true },
+                { "key": "jurisdiction", "value": "", "disabled": true },
+                { "key": "sector", "value": "", "disabled": true },
+                { "key": "dateFrom", "value": "", "disabled": true },
+                { "key": "dateTo", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Enforcement (multipart)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "enforcements"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "documentId",
+                  "value": "DOC-2025-001",
+                  "type": "text"
+                },
+                {
+                  "key": "jurisdiction",
+                  "value": "United States",
+                  "type": "text"
+                },
+                { "key": "regulatorName", "value": "SEC", "type": "text" },
+                {
+                  "key": "subjectName",
+                  "value": "Acme Trading Ltd",
+                  "type": "text"
+                },
+                { "key": "sector", "value": "Finance", "type": "text" },
+                {
+                  "key": "dateOfAction",
+                  "value": "2025-03-15",
+                  "type": "text"
+                },
+                { "key": "field", "value": "Securities", "type": "text" },
+                { "key": "currency", "value": "USD", "type": "text" },
+                { "key": "fineAmount", "value": "250000", "type": "text" },
+                {
+                  "key": "enforcementActionType",
+                  "value": "Fine",
+                  "type": "text"
+                },
+                {
+                  "key": "violationTypes",
+                  "value": "Market Manipulation",
+                  "type": "text"
+                },
+                {
+                  "key": "enforcementNoticeUrl",
+                  "value": "https://www.sec.gov/litigation/admin/2025/some-notice.pdf",
+                  "type": "text"
+                },
+                {
+                  "key": "enforcementFile",
+                  "type": "file",
+                  "disabled": true,
+                  "description": "Optional PDF upload"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Upload Enforcements (CSV)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements/bulk-upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "enforcements", "bulk-upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "CSV file — see template endpoint for format"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Template (standard)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements/templates/enforcement-bulk-upload-template.csv",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "admin",
+                "enforcements",
+                "templates",
+                "enforcement-bulk-upload-template.csv"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Template (headers only)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements/templates/enforcement-bulk-upload-headers.csv",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "admin",
+                "enforcements",
+                "templates",
+                "enforcement-bulk-upload-headers.csv"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Enforcement by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements/{{enforcementId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "enforcements", "{{enforcementId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Enforcement (multipart)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements/{{enforcementId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "enforcements", "{{enforcementId}}"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "fineAmount", "value": "300000", "type": "text" },
+                {
+                  "key": "enforcementActionType",
+                  "value": "Fine,Suspension",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Enforcement",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/enforcements/{{enforcementId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "enforcements", "{{enforcementId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Regulators",
+      "description": "Regulator management. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "List Regulators",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/regulators?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "regulators"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "name", "value": "", "disabled": true },
+                { "key": "country", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Regulator",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/regulators",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "regulators"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Financial Conduct Authority\",\n  \"country\": \"United Kingdom\",\n  \"currency\": \"GBP\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Regulator by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/regulators/{{regulatorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "regulators", "{{regulatorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Regulator",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/regulators/{{regulatorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "regulators", "{{regulatorId}}"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Regulator",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/regulators/{{regulatorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "regulators", "{{regulatorId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Clients",
+      "description": "Client management. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/clients?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clients"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clients"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corp\",\n  \"email\": \"contact@acme.com\",\n  \"company\": \"Acme Corporation\",\n  \"phone\": \"+14155552671\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Client by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clients", "{{clientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clients", "{{clientId}}"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Client",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "clients", "{{clientId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Content",
+      "description": "Content record management. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "List Content Records",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/contents?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contents"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Content",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/contents",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contents"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Privacy Policy\",\n  \"content\": \"We collect the following personal data...\",\n  \"type\": \"article\",\n  \"isPublished\": false,\n  \"tags\": [\"privacy\", \"legal\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Content by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/contents/{{contentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contents", "{{contentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Content",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/contents/{{contentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contents", "{{contentId}}"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPublished\": true,\n  \"publishedAt\": \"2025-06-01T00:00:00.000Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Content",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/contents/{{contentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "contents", "{{contentId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Customers",
+      "description": "Customer account management. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "Get Customer Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/customers/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "customers", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Sync Customers from Clerk",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/customers/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "customers", "sync"]
+            }
+          }
+        },
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/customers?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "customers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "customers", "{{customerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/admin/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "customers", "{{customerId}}"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isSuspended\": false,\n  \"subscriptionTier\": \"premium\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/admin/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "customers", "{{customerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard",
+      "description": "Dashboard statistics. Requires `{{adminToken}}`.",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Portal",
+      "description": "Customer-facing endpoints. Requires `{{clerkToken}}`.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{clerkToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Search Enforcements",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/customer/portal/enforcement/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "portal", "enforcement", "search"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"search\": \"insider trading\",\n  \"jurisdiction\": \"United States\",\n  \"sector\": \"Finance\",\n  \"page\": 1,\n  \"limit\": 20\n}"
+            },
+            "description": "Advanced enforcement search with filtering. Returns paginated results with an AI-generated search description."
+          }
+        },
+        {
+          "name": "Get Enforcement by ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/portal/enforcement/{{enforcementId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "portal", "enforcement", "{{enforcementId}}"]
+            },
+            "description": "Public endpoint — no auth required. Generates and caches an AI summary on first access."
+          }
+        },
+        {
+          "name": "Get Privacy Policy",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/portal/privacy-policy",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "portal", "privacy-policy"]
+            }
+          }
+        },
+        {
+          "name": "Get Terms of Use",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/portal/terms-of-use",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "portal", "terms-of-use"]
+            }
+          }
+        },
+        {
+          "name": "Get Legal Documents (combined)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/portal/legal-documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "portal", "legal-documents"]
+            },
+            "description": "Returns both Privacy Policy and Terms of Use in a single request."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Profile",
+      "description": "Customer profile and session management. Requires `{{clerkToken}}`.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{clerkToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/customer/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "profile"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Johnson\",\n  \"publicMetadata\": {\n    \"occupation\": \"Compliance Officer\",\n    \"company\": \"FinanceCorp\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List My Sessions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "Revoke Session",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/customer/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "sessions", "{{sessionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Conversations",
+      "description": "Customer support conversation management. Requires `{{clerkToken}}`.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{clerkToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "List Conversations (by token)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/conversations/by-token/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "conversations", "by-token", "list"]
+            }
+          }
+        },
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "conversations"]
+            }
+          }
+        },
+        {
+          "name": "Create Conversation",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/customer/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "conversations"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I need help understanding the latest FCA sanctions\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Conversation by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/customer/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "conversations", "{{conversationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Conversation",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/customer/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "conversations", "{{conversationId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Chat",
+      "description": "AI-powered chat and conversation management. Accepts Clerk token OR admin JWT.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{clerkToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "AI Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ai/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "health"]
+            }
+          }
+        },
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are the most recent SEC enforcement actions in the finance sector?\",\n  \"conversationId\": \"\"\n}"
+            },
+            "description": "Send a message to the AI assistant. Omit `conversationId` to start a new conversation; include it to continue an existing one."
+          }
+        },
+        {
+          "name": "List AI Conversations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "conversations"]
+            }
+          }
+        },
+        {
+          "name": "Get AI Conversation by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "conversations", "{{conversationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete AI Conversation",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "conversations", "{{conversationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Pin / Unpin Conversation",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "conversations", "{{conversationId}}"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pinned\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/history/{{conversationId}}?limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "history", "{{conversationId}}"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "cursor", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Paginated message history for a conversation. Use `cursor` from the previous response for pagination."
+          }
+        },
+        {
+          "name": "Export Conversation",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/export/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "export", "{{conversationId}}"]
+            },
+            "description": "Returns the full conversation as plain text."
+          }
+        },
+        {
+          "name": "Export Single Message",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ai/chat/messages/{{messageId}}/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "chat", "messages", "{{messageId}}", "export"]
+            },
+            "description": "Returns a single message as plain text."
+          }
+        },
+        {
+          "name": "List Conversations (legacy path)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "conversations"]
+            },
+            "description": "Deprecated — use GET /ai/chat/conversations instead."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reference Data",
+      "description": "Public reference data endpoints — no authentication required.",
+      "item": [
+        {
+          "name": "List Countries",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/countries",
+              "host": ["{{baseUrl}}"],
+              "path": ["countries"]
+            }
+          }
+        },
+        {
+          "name": "List Currencies",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/currencies",
+              "host": ["{{baseUrl}}"],
+              "path": ["currencies"]
+            }
+          }
+        },
+        {
+          "name": "List Sectors",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sectors",
+              "host": ["{{baseUrl}}"],
+              "path": ["sectors"]
+            }
+          }
+        },
+        {
+          "name": "List Violation Types",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/violation-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["violation-types"]
+            }
+          }
+        },
+        {
+          "name": "List Enforcement Action Types",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enforcement-action-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["enforcement-action-types"]
+            }
+          }
+        },
+        {
+          "name": "List Fields",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/fields",
+              "host": ["{{baseUrl}}"],
+              "path": ["fields"]
+            }
+          }
+        },
+        {
+          "name": "List Regulators (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/regulators?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["regulators"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Active Clients (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Incoming webhook endpoints.",
+      "item": [
+        {
+          "name": "Clerk Webhook",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/clerk",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "clerk"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "svix-id",
+                "value": "msg_123",
+                "description": "Svix delivery ID"
+              },
+              {
+                "key": "svix-timestamp",
+                "value": "1234567890",
+                "description": "Unix timestamp"
+              },
+              {
+                "key": "svix-signature",
+                "value": "v1,signature_here",
+                "description": "Svix HMAC signature"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"user.created\",\n  \"data\": {}\n}"
+            },
+            "description": "Receives Clerk webhook events (user.created, user.updated, user.deleted). Validated via Svix signature."
+          }
+        }
+      ]
+    }
+  ]
+}

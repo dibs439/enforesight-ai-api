@@ -1,0 +1,191 @@
+# Shared non-secret environment variables are managed via the Stage and Production
+# environment groups in the Render dashboard. This file references them below.
+#
+# The following groups must already exist in your Render workspace:
+#   - Production  (for the production environment)
+#   - Stage       (for the staging environment)
+
+envVarGroups:
+  - name: Production
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: OPENAI_MODEL
+        value: gpt-5.5
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: MAX_TOKENS
+        value: 800
+      - key: EMBEDDING_MAX_CHARS
+        value: 8000
+      - key: MAX_CONVERSATION_HISTORY
+        value: 10
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: 'false'
+      - key: SMTP_FROM_NAME
+        value: Enforesight
+      - key: AI_ENGINE_URL
+        value: https://enforesight-ai-engine.onrender.com
+      - key: LOG_LEVEL
+        value: info
+  - name: Stage
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: OPENAI_MODEL
+        value: gpt-5.5
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: MAX_TOKENS
+        value: 800
+      - key: EMBEDDING_MAX_CHARS
+        value: 8000
+      - key: MAX_CONVERSATION_HISTORY
+        value: 10
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: 'false'
+      - key: SMTP_FROM_NAME
+        value: Enforesight
+      - key: AI_ENGINE_URL
+        value: https://enforesight-ai-engine.onrender.com
+      - key: LOG_LEVEL
+        value: debug
+
+projects:
+  - name: enforesight
+    environments:
+      # ── Production ──────────────────────────────────────────────────────────
+      - name: Production
+        permissions:
+          protection: enabled
+        services:
+          - type: web
+            name: enforesight-api
+            runtime: node
+            region: oregon
+            plan: starter
+            branch: main
+            buildCommand: bash .render/build.sh
+            startCommand: npm start
+            healthCheckPath: /health
+            autoDeployTrigger: commit
+            envVars:
+              # ── Server ────────────────────────────────────────────────────
+              - key: NODE_ENV
+                value: production
+              - key: API_BASE_URL
+                value: https://api.enforesight.ai
+              - key: FRONTEND_URL
+                value: https://enforesight.ai
+              - key: CORS_ORIGIN
+                value: https://enforesight.ai,https://www.enforesight.ai
+              - key: AUTHORIZED_PARTIES
+                value: https://enforesight.ai,https://www.enforesight.ai
+              # ── JWT Authentication ────────────────────────────────────────
+              - key: JWT_SECRET
+                sync: false # Set this manually in Render dashboard
+              # ── Clerk Authentication ──────────────────────────────────────
+              - key: CLERK_SECRET_KEY
+                sync: false # Set this manually in Render dashboard
+              - key: CLERK_PUBLISHABLE_KEY
+                sync: false # Set this manually in Render dashboard
+              - key: CLERK_JWT_KEY
+                sync: false # Set this manually in Render dashboard
+              - key: CLERK_WEBHOOK_SECRET
+                sync: false # Set this manually in Render dashboard
+              # ── Convex Database ───────────────────────────────────────────
+              - key: CONVEX_DEPLOYMENT
+                sync: false # Set this manually in Render dashboard
+              - key: CONVEX_URL
+                sync: false # Set this manually in Render dashboard
+              - key: CONVEX_SITE_URL
+                sync: false # Set this manually in Render dashboard
+              # ── OpenAI ────────────────────────────────────────────────────
+              - key: OPENAI_API_KEY
+                sync: false # Set this manually in Render dashboard
+              # ── SMTP ──────────────────────────────────────────────────────
+              - key: SMTP_HOST
+                sync: false # Set this manually in Render dashboard
+              - key: SMTP_USER
+                sync: false # Set this manually in Render dashboard
+              - key: SMTP_PASS
+                sync: false # Set this manually in Render dashboard
+              - key: SMTP_FROM_EMAIL
+                sync: false # Set this manually in Render dashboard
+              # ── Shared (from Render env group) ────────────────────────
+              - fromGroup: Production
+            disks:
+              - name: data
+                mountPath: /var/data
+                sizeGB: 10
+            domains:
+              - api.enforesight.ai
+
+      # ── Staging ─────────────────────────────────────────────────────────────
+      - name: Stage
+        services:
+          - type: web
+            name: enforesight-api
+            runtime: node
+            region: oregon
+            plan: starter
+            branch: develop
+            buildCommand: bash .render/build.sh
+            startCommand: npm start
+            healthCheckPath: /health
+            autoDeployTrigger: commit
+            envVars:
+              # ── Server ────────────────────────────────────────────────────
+              - key: NODE_ENV
+                value: staging
+              - key: API_BASE_URL
+                value: https://stage.api.enforesight.ai
+              - key: FRONTEND_URL
+                value: https://stage.enforesight.ai
+              - key: CORS_ORIGIN
+                value: https://stage.enforesight.ai,https://staging.enforesight.ai
+              - key: AUTHORIZED_PARTIES
+                value: https://stage.enforesight.ai,https://staging.enforesight.ai
+              # ── JWT Authentication ────────────────────────────────────────
+              - key: JWT_SECRET
+                sync: false # Set this manually in Render dashboard
+              # ── Clerk Authentication ──────────────────────────────────────
+              - key: CLERK_SECRET_KEY
+                sync: false # Set this manually in Render dashboard
+              - key: CLERK_PUBLISHABLE_KEY
+                sync: false # Set this manually in Render dashboard
+              - key: CLERK_JWT_KEY
+                sync: false # Set this manually in Render dashboard
+              - key: CLERK_WEBHOOK_SECRET
+                sync: false # Set this manually in Render dashboard
+              # ── Convex Database ───────────────────────────────────────────
+              - key: CONVEX_DEPLOYMENT
+                sync: false # Set this manually in Render dashboard
+              - key: CONVEX_URL
+                sync: false # Set this manually in Render dashboard
+              - key: CONVEX_SITE_URL
+                sync: false # Set this manually in Render dashboard
+              # ── OpenAI ────────────────────────────────────────────────────
+              - key: OPENAI_API_KEY
+                sync: false # Set this manually in Render dashboard
+              # ── SMTP ──────────────────────────────────────────────────────
+              - key: SMTP_HOST
+                sync: false # Set this manually in Render dashboard
+              - key: SMTP_USER
+                sync: false # Set this manually in Render dashboard
+              - key: SMTP_PASS
+                sync: false # Set this manually in Render dashboard
+              - key: SMTP_FROM_EMAIL
+                sync: false # Set this manually in Render dashboard
+              # ── Shared (from Render env group) ────────────────────────
+              - fromGroup: Stage
+            disks:
+              - name: data
+                mountPath: /var/data
+                sizeGB: 10
+            domains:
+              - stage.api.enforesight.ai

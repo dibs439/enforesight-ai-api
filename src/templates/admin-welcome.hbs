@@ -1,0 +1,341 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Welcome to Enforesight - Admin Account</title>
+    <link rel='preconnect' href='https://fonts.googleapis.com' />
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin />
+    <link
+      href='https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,100..900;1,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap'
+      rel='stylesheet'
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .email-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background-color: #180045;
+        height: 72px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        padding-left: 43px;
+        padding-right: 43px;
+        gap: 16px;
+      }
+
+      .header-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+      }
+
+      .logo-image {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+      }
+
+      .logo-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .logo-text {
+        color: #a3bdff;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        font-family: 'Azeret Mono', monospace;
+      }
+
+      .main-content {
+        padding: 48px 43px;
+      }
+
+      .main-heading {
+        font-family: 'Azeret Mono', monospace;
+        font-size: 48px;
+        font-weight: 400;
+        color: #1a1a1a;
+        margin-bottom: 16px;
+        line-height: 100%;
+        letter-spacing: -1.2px;
+      }
+
+      .sub-heading {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #999;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        line-height: 16px;
+      }
+
+      .paragraph {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 18px;
+        color: #666;
+        margin-bottom: 16px;
+        line-height: 32.5px;
+        font-weight: 400;
+        letter-spacing: 0px;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background-color: #3956d4;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 32px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin: 24px 0;
+        transition: background-color 0.3s ease;
+      }
+
+      .cta-button:hover {
+        background-color: #2a3fa8;
+      }
+
+      .cta-section {
+        background: linear-gradient(135deg, #1a0e3f 0%, #2d1b69 100%);
+        border-radius: 12px;
+        padding: 40px 43px;
+        text-align: center;
+        margin: 48px 43px;
+      }
+
+      .cta-heading {
+        font-family: 'Azeret Mono', monospace;
+        font-size: 24px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+        line-height: 32px;
+        letter-spacing: 0px;
+      }
+
+      .cta-subtext {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 16px;
+        color: #b3b3d9;
+        margin-bottom: 24px;
+        line-height: 24px;
+        font-weight: 400;
+        letter-spacing: 0px;
+      }
+
+      .cta-button-secondary {
+        display: inline-block;
+        background-color: #3956d4;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 40px;
+        border-radius: 25px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: background-color 0.3s ease;
+      }
+
+      .cta-button-secondary:hover {
+        background-color: #2a3fa8;
+      }
+
+      .footer {
+        background-color: #e8e4f3;
+        padding: 48px 43px;
+        text-align: center;
+      }
+
+      .footer-logo {
+        margin-bottom: 24px;
+      }
+
+      .footer-logo-img {
+        width: 143px;
+        height: 46px;
+        object-fit: contain;
+      }
+
+      .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin: 24px 0;
+        flex-wrap: wrap;
+      }
+
+      .footer-link {
+        font-family: 'Montserrat', sans-serif;
+        color: #333;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        line-height: 19.5px;
+        transition: color 0.3s ease;
+      }
+
+      .footer-link:hover {
+        color: #3956d4;
+      }
+
+      .footer-address {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 12px;
+        color: #666;
+        margin: 16px 0;
+        letter-spacing: 1.2px;
+        font-weight: 400;
+        line-height: 19.5px;
+        text-transform: uppercase;
+      }
+
+      .footer-copyright {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 12px;
+        color: #999;
+        margin: 16px 0;
+        border-top: 1px solid #d4cce6;
+        padding-top: 16px;
+        letter-spacing: 1.2px;
+        font-weight: 400;
+        line-height: 19.5px;
+        text-transform: uppercase;
+      }
+
+      .footer-bottom {
+        font-size: 10px;
+        color: #999;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #d4cce6;
+      }
+
+      @media (max-width: 600px) {
+        .main-heading {
+          font-size: 28px;
+        }
+
+        .main-content {
+          padding: 32px 16px;
+        }
+
+        .cta-section {
+          padding: 32px 16px;
+        }
+
+        .footer {
+          padding: 32px 16px;
+        }
+
+        .footer-links {
+          gap: 16px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class='email-wrapper'>
+      <!-- Header -->
+      <div class='header'>
+        <a href='#' class='header-logo'>
+          <div class='logo-image'>
+            <img src='{{logoUrl}}' alt='Enforesight Logo' />
+          </div>
+          <span class='logo-text'>Enforesight</span>
+        </a>
+      </div>
+
+      <!-- Main Content -->
+      <div class='main-content'>
+        <h1 class='main-heading'>Welcome to Enforesight</h1>
+        <p class='sub-heading'>Your admin account is ready</p>
+
+        <p class='paragraph'>Hello {{firstName}},</p>
+
+        <p class='paragraph'>
+          Your admin account has been successfully created. To activate your
+          account and set your password, please click the button below.
+        </p>
+
+        <a href='{{activationUrl}}' class='cta-button'>Activate Your Account</a>
+
+        <p class='paragraph'>
+          Once activated, you'll have full access to the Enforesight admin
+          dashboard where you can manage users, configure settings, and monitor
+          system activities.
+        </p>
+      </div>
+
+      <!-- CTA Section -->
+      <div class='cta-section'>
+        <h2 class='cta-heading'>Ready to get started?</h2>
+        <p class='cta-subtext'>
+          Activate your account now and unlock the power of regulatory
+          intelligence for your organization.
+        </p>
+        <a href='{{activationUrl}}' class='cta-button-secondary'>Activate
+          Account</a>
+      </div>
+
+      <!-- Footer -->
+      <div class='footer'>
+        <div class='footer-logo'>
+          <img
+            src='{{logoUrl}}'
+            alt='Enforesight Logo'
+            class='footer-logo-img'
+          />
+        </div>
+
+        <div class='footer-links'>
+          <a href='#' class='footer-link'>Privacy Policy</a>
+          <a href='#' class='footer-link'>Contact Support</a>
+        </div>
+
+        <p class='footer-address'>
+          {{companyAddress}}
+        </p>
+
+        <p class='footer-copyright'>
+          © 2024 Enforesight. All rights reserved.
+        </p>
+
+        <div class='footer-bottom'>
+          <p>If you did not expect this account creation, please contact your
+            administrator.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
