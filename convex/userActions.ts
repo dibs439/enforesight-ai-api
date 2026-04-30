@@ -19,6 +19,7 @@ export const createUserSecure = action({
     lastName: v.string(),
     email: v.string(),
     password: v.string(),
+    active: v.optional(v.boolean()),
     role: v.union(v.literal('admin'), v.literal('editor')),
   },
   handler: async (ctx, args): Promise<string> => {
@@ -29,6 +30,7 @@ export const createUserSecure = action({
     return await ctx.runMutation(api.users.createUser, {
       ...args,
       password: hashedPassword,
+      active: args.active,
     });
   },
 });

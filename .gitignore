@@ -1,4 +1,5 @@
 # Convex temp workaround (Windows EPERM fix)
+.claude/
 .convex-tmp/
 
 # Dependencies
