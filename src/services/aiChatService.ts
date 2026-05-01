@@ -1234,7 +1234,7 @@ Please answer the user's question accurately based on the data provided above.`,
     model: AI_MODEL,
     messages,
     max_completion_tokens: MAX_TOKENS,
-    temperature: 0.1,
+    temperature: 1,
   });
 
   return {
