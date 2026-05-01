@@ -108,8 +108,8 @@ export const analyzeDateFormats = mutation({
       subjectName: enforcement.subjectName,
       dateOfAction: enforcement.dateOfAction,
       currentFormat: typeof enforcement.dateOfAction,
-      isValidDate: !isNaN(new Date(enforcement.dateOfAction).getTime()),
-      parsedDate: new Date(enforcement.dateOfAction).toISOString(),
+      isValidDate: enforcement.dateOfAction ? !isNaN(new Date(enforcement.dateOfAction).getTime()) : false,
+      parsedDate: enforcement.dateOfAction ? new Date(enforcement.dateOfAction).toISOString() : null,
     }));
 
     return {

@@ -7,7 +7,6 @@
     "prebuild": "node scripts/prebuild.js",
     "build": "tsc && node scripts/copy-convex.js",
     "start": "node dist/index.js",
-    "postinstall": "npm run build",
     "dev": "nodemon --exec ts-node ./src/index.ts",
     "dev:inspect": "nodemon --exec \"node --inspect -r ts-node/register ./src/index.ts\"",
     "dev:ts": "ts-node ./src/index.ts",

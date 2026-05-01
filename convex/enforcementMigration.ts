@@ -13,7 +13,7 @@ export const migrateEnforcementActionTypeToArray = mutation({
       if (!Array.isArray(enforcement.enforcementActionType)) {
         // Convert string to array
         await ctx.db.patch(enforcement._id, {
-          enforcementActionType: [enforcement.enforcementActionType],
+          enforcementActionType: enforcement.enforcementActionType ? [enforcement.enforcementActionType] : [],
         });
         migratedCount++;
       }

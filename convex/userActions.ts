@@ -96,7 +96,7 @@ export const createUserWithActivation = action({
   },
   handler: async (ctx, args): Promise<any> => {
     // Generate activation code (UUID-like)
-    const crypto = await import('crypto');
+    const crypto = globalThis.crypto;
     const activationCode = crypto.randomUUID();
 
     // Set expiry to 24 hours from now
@@ -134,7 +134,7 @@ export const createUserWithActivationAndPassword = action({
   },
   handler: async (ctx, args): Promise<any> => {
     // Generate activation code (UUID-like)
-    const crypto = await import('crypto');
+    const crypto = globalThis.crypto;
     const activationCode = crypto.randomUUID();
 
     // Set expiry to 24 hours from now
@@ -183,7 +183,7 @@ export const resendActivationEmail = action({
     }
 
     // Generate new activation code
-    const crypto = await import('crypto');
+    const crypto = globalThis.crypto;
     const activationCode = crypto.randomUUID();
 
     // Set new expiry to 24 hours from now
