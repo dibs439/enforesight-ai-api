@@ -379,7 +379,7 @@ Now analyze and return JSON:`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0,
+      temperature: 1,
       response_format: { type: 'json_object' },
     });
 
