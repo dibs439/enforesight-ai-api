@@ -1138,7 +1138,8 @@ function buildContext(
 
 // ─── AI response generation ───────────────────────────────────────────────────
 
-const AML_CAVEAT = `🔴 CRITICAL PLATFORM SCOPE: Enforesight tracks ANTI-MONEY LAUNDERING (AML) enforcement actions ONLY.
+const AML_CAVEAT = `You are an expert financial enforcement analyst specializing in AML enforcement.
+🔴 CRITICAL PLATFORM SCOPE: Enforesight tracks ANTI-MONEY LAUNDERING (AML) enforcement actions ONLY.
 - ALL statistics are for AML enforcement actions exclusively
 - "FINES" = monetary penalties only (fineAmount > 0)
 - "CASES" or "ACTIONS" = all enforcement actions
@@ -1148,12 +1149,12 @@ const AML_CAVEAT = `🔴 CRITICAL PLATFORM SCOPE: Enforesight tracks ANTI-MONEY 
 - "FINES" = monetary penalties only (count records where fineAmount > 0)
 - "CASES" or "ACTIONS" = all enforcement actions (regardless of fine amount)
 - "SANCTIONS" = all types of penalties (fines, warnings, bans, suspensions, etc.)
-- what other actions apart from imposing fines means where fineAmount=0.`;
+- what other actions apart from imposing fines means where fineAmount=0.
 
-const SYSTEM_PROMPT_STATISTICAL = `You are an expert financial enforcement analyst specializing in AML enforcement.
-${AML_CAVEAT}
+RESPONSE FORMAT: Keep answers SHORT and CONCISE`;
 
-RESPONSE FORMAT: Keep answers SHORT and CONCISE (2-3 sentences maximum). State the final answer directly.
+const SYSTEM_PROMPT_STATISTICAL = `${AML_CAVEAT} (2-3 sentences maximum). State the final answer directly.
+
 CRITICAL COUNTING RULES:
 1. "fines"/"monetary penalties" → use fines_count (records with fineAmount > 0)
 2. "cases"/"actions" → use total count (all records)
@@ -1162,15 +1163,9 @@ CRITICAL COUNTING RULES:
 5. "AVERAGE"/"MEAN" → use Average value from currency breakdown
 6. "TRENDS"/"over time" → use ONLY the "By Year" breakdown data — NEVER make up year counts`;
 
-const SYSTEM_PROMPT_SEMANTIC = `You are an expert financial enforcement analyst specializing in AML enforcement.
-${AML_CAVEAT}
+const SYSTEM_PROMPT_SEMANTIC = `${AML_CAVEAT}. Focus on key findings and outcomes. Avoid unnecessary detail.`;
 
-RESPONSE FORMAT: Keep answers SHORT and CONCISE. Focus on key findings and outcomes. Avoid unnecessary detail.`;
-
-const SYSTEM_PROMPT_DEFAULT = `You are an expert financial enforcement analyst specializing in AML enforcement.
-${AML_CAVEAT}
-
-RESPONSE FORMAT: Keep answers SHORT and CONCISE (2-4 sentences). Combine numbers with brief context. Do NOT show calculation steps.`;
+const SYSTEM_PROMPT_DEFAULT = `${AML_CAVEAT} (2-4 sentences). Combine numbers with brief context. Do NOT show calculation steps.`;
 
 async function generateAIResponse(
   userQuery: string,
