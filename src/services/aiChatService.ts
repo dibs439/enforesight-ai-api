@@ -202,7 +202,7 @@ function parseRelativeTimePeriod(
 
 // ─── Query classification ─────────────────────────────────────────────────────
 
-const SUPPORTED_REGULATORS = [
+const SAMPLE_REGULATORS = [
   'AUSTRAC',
   'FCA',
   'FinCEN',
@@ -228,22 +228,307 @@ const SUPPORTED_REGULATORS = [
   'ESMA',
 ];
 
-const SUPPORTED_VIOLATION_TYPES = [
-  'SAR Reporting',
-  'Currency Transaction Reporting',
-  'AML Program',
-  'KYC',
-  'CTF',
-  'Sanctions',
-  'Beneficial Ownership',
-  'Record Keeping',
-  'Customer Due Diligence',
-  'Enhanced Due Diligence',
-  'Transaction Monitoring',
-  'Reporting Failures',
-  'Compliance Program',
-  'Staff Training',
-  'Customer Identification',
+const SAMPLE_SECTORS = [
+    'Individual',
+    'Banks',
+    'Capital Markets Services',
+    'Trust Company',
+    'Major Payment Institutions',
+    'Insurance',
+    'Gambling',
+    'DNFBP - Accountant, Payroll, Tax',
+    'DNFBP - Payroll", "Insurance business',
+    'Financial Services and TCSP',
+    'Financial Services',
+    'DNFBP - Tax',
+    'DNFBP - Accountant',
+    'DNFBP - TCSP',
+    'Banking',
+    'DNFBP - Gambling',
+    'Money Remitter',
+    'DNFBP - Legal',
+    'DNFBP - Accounting',
+    'DNFBP - Real Estate',
+    'DNFBP", "Banking business',
+    'Payment institution',
+    'Electronic money institution',
+    'Payment service provider',
+    'Financial Institution',
+    'Money Services Business',
+    'Banking Business',
+    'Payment Institution',
+    'DNFBP - Dealer High Value Goods',
+    'DNFBP - Dealer Precious Metals and Stones',
+    'Virtual Assests Service Provider (VASP)',
+    'FInancial Services',
+    'Financial services',
+    'DNFBP - Corporate Service Provider',
+    'VASP", "Virtual Asset Service Provider',
+    'DNFBP - Accountants',
+    'Virtual Assets Service Provider',
+    'Casino", "Remittance Service Provider',
+    'Reporting Entity',
+    'Digital Payment Service Provider',
+    'Remittance Dealer',
+    'Casinos',
+    'DNFBP - Dealer Precious Metals Stones',
+    'DNFBP - Dealer in Precious Metal Stone',
+    'Currency Exchange',
+    'DNFBP - Auditor',
+    'DNFBP - Legal Services',
+    'DNFBP - High Value Dealer',
+    'Securities and Futures',
+    'Depository Institutions',
+    'Covered Business',
+    'DNFBP - Dealer Precious Metals / Stones',
+    'Authorised Payment Institution',
+    'Electronic Money Institution',
+    'Small Payment Institution',
+    'Virtual Assets Services Provider (VASP)',
+];
+
+const SAMPLE_VIOLATION_TYPES = [
+    'Effective oversight',
+    'Resourcing',
+    'Currency transaction reports',
+    'Special Measures under USA PATRIOT Act',
+    'Ongoing Monitoring',
+    'Policies and procedures',
+    'Transaction Monitoring',
+    'Cash Controls',
+    'Annual AML Return',
+    'Threshold transaction reporting',
+    "Written agreement with an agent to ascertain a person's identity",
+    'Risk based policies and procedures',
+    'Customer Due Diligence',
+    'Record Keeping',
+    'Compliance policies and procedures',
+    'Remittance Service Provider Registration',
+    'International funds trsnsfer originator information',
+    'Money Laundering Reporting Officer (MLRO)',
+    'SAR disclosure prohibition',
+    'MSB Registration',
+    'Risk returns',
+    'Customer Risk Assessment',
+    'Prescribed records',
+    "Knowingly concerned with a firm's contraventions",
+    'Compliance resources',
+    'Governance and control',
+    'Obligations on third parties',
+    'Ongoing Due Diligence (ODD)',
+    'Prescribed identification information',
+    'Employee Due Diligence',
+    'Oversight',
+    'Conspiracy',
+    'Comply with an order or requirement',
+    'Registration as a DNFBP',
+    "Directors' duties",
+    'Responsibility for overseeing compliance',
+    'Policies and internal controls',
+    'Unlicensed money-changing and remittance',
+    'False or misleading information',
+    'Reporting Entity Registration',
+    'Ongoing Customer Due Diligence',
+    'Compliance program review',
+    'Using available information',
+    'AML compliance officer',
+    'Forgery',
+    'Enhanced Due Diligence',
+    'Currency transcation reports',
+    'Payer / Payee Information',
+    'Disbursement reporting',
+    'Enhanced Customer Due Diligence (EDD)',
+    'Risk monitoring and management',
+    'Comply with a ministerial directive',
+    'Cash dispersement reporting',
+    'Training',
+    'Unlicensed financial services',
+    'Registration renewal',
+    'Cash transaction reporting',
+    'Customer identification program',
+    'Failure to disclose information',
+    'Training program',
+    'Compliance Officer',
+    'Registration',
+    'Business Risk Assessment (BRA)',
+    'Reporting obligations',
+    'International Funds Transfer Reporting',
+    'STR reporing',
+    'Electronic funds transfer reporting',
+    'Providing payment services unlawfully',
+    'Reliance on third parties',
+    'Correspondent Account Due Diligence',
+    'Prescribed measures for high risk',
+    'Registration as DNFBP',
+    'Provision of false, misleading or deceptive information',
+    'Ensuring due diligence / post STR follow up',
+    'Indenpendent review',
+    'Business Risk Assessment',
+    'Ensuring compliance',
+    'Appoint a person responsible for a compliance program',
+    'Unlicensed VA activities',
+    'STR confidentiality',
+    'Technology Risk Assessment',
+    'Suspicious Activity Reports (SARS)',
+    'Fitness and Propriety',
+    'Risk management',
+    'Internal policies, procedures and controls',
+    'STR reporting system registration',
+    'Failure to comply with requirement(s)',
+    'Transaction Monitoring Program',
+    'Primary Money Laundering Concern',
+    'Providing false information',
+    'AML systems and controls',
+    'Compliance programme',
+    'Transaction Reporting',
+    'Provide documents reasonably required with notice',
+    'MSB registration change notification',
+    'Reasonable measures in relation to PEPs',
+    'Internal controls',
+    'Funds Transfer Reporting',
+    "Officers' duties",
+    'Ongoing Due Diligence',
+    'Not disclosed',
+    'Annual Return',
+    'Staff Training',
+    'Governance and assurance',
+    'Record-keeping',
+    'SAR reporting',
+    'Currency transactions reports',
+    'Post STR follow up',
+    'Customer identification',
+    'AML Program',
+    'Policies, procedures and internal controls',
+    'Enhanced Customer Due Diilgence (EDD)',
+    'Register as an MSB',
+    'Maintaining remittance registration',
+    'STR reporting',
+    'Recordkeeping',
+    'Onging Cusomer Due Diligence',
+    'Negligence',
+    'Obligations as compliance officer',
+    'Update Internal Controls',
+    'Sufficient resourcing',
+    'Management responsibilities for compliance',
+    'Governance',
+    'Policies, procedures and controls',
+    'Customer Risk Assessment (CRA)',
+    'Prescribed review',
+    'Notification of change of prescribed information',
+    'USA PATRIOT Act obligations',
+    'PEPs',
+    'Structuring',
+    'Compliance review',
+    'Raising suspicions',
+    'AML Policies and Procedures',
+    'Sanctions screening',
+    'False statements',
+    'Systems and controls',
+    'Customer due diligence (CDD)',
+    'Correspondent banking',
+    'Systems, controls, documentation',
+    'AML Training Program',
+    'Risk Assessment',
+    'Enhanced Customer Due Diligence',
+    'Use of available information',
+    'Enhanced Due Diligence (EDD)',
+    'Outsourcing arrangements',
+    'Systems of internal controls',
+    'AML/CFT regulations',
+    'Independent Review',
+    'Originator information (wire transfers)',
+    'Virtual currency transaction reporting',
+    'Governance and oversight',
+    'Compliance Monitoring',
+    'Skill, care and diligence',
+    'Notification of change in MSB registration',
+    'Risk assessent',
+    'Maintain registration with HMRC',
+    'AML Annual Return',
+    'Prescribed special measures',
+    'Prescribed measures for high risks',
+    'Obstruction',
+    'MLRO appointment',
+    'Notification of change to MSB registration',
+    'Money laundering',
+    'Compliane policies and procedures',
+    'Business relationship termination',
+    'Policies, procedures, internal controls',
+    'Failure to Register with HMRC',
+    'Correspondent risk assessment',
+    'Annual Returns',
+    'Report STRs',
+    'Reasonable enquiries'
+];
+
+const SAMPLE_ENFORCEMENT_ACTION_TYPES = ['Licence Surrender',
+ 'Authorisation withdrawn',
+ 'Restriction from acting as compliance officer, or senior manager of a reporting entity',
+ 'Directive to remedial action',
+ 'Prohibition Order on Transmittals of Funds Involving CIBanco',
+ 'Refusal to renew VASP registration',
+ 'Direction',
+ 'Refusal to renew remittance service provider registration',
+ 'Remedial Direction',
+ 'Financial Penalties',
+ 'Public Censure',
+ 'Remittance service provider registration suspended',
+ 'Authorisation Cancellation',
+ 'Directive for remedial action',
+ 'VASP registration suspended',
+ 'Requirement (business restriction)',
+ 'Licence Suspension',
+ 'Reprimands',
+ 'Skilled person review',
+ 'Skilled Person Review',
+ 'Remittance service provider registration refused',
+ 'Remittance service provider registration cancelled',
+ 'Cease MSB activitities',
+ 'Offboard US Users',
+ 'Registration Withdrawn',
+ 'Training program',
+ 'Restriction',
+ 'Licence Application Rejected',
+ 'Caution',
+ 'Cautions',
+ 'VASP registration refused',
+ 'Skilled Person Review (Compliance Audit)',
+ 'Prohibition Order on Transmittals of Funds Involving Intercam',
+ 'Prohibition',
+ 'Authorization Withdrawn',
+ 'Injunction carrying out financial activies',
+ 'Licence Revoked',
+ 'Remark',
+ 'Registration Cancellation',
+ 'Independent Compliance Monitor',
+ 'Remedial action direction',
+ 'Prohibition Order on Transmittals of Funds Involving Vector',
+ 'Prohibition Order',
+ 'Ban',
+ 'SAR look back',
+ 'Cease MSB activities until registered',
+ 'Public Reprimand',
+ 'Injunction carrying out financial activities',
+ 'Order (Remedial Action)',
+ 'Injunction (Cease Operations)',
+ 'Cease and desist',
+ 'Restitution',
+ 'Financial Penalty',
+ 'Prohibition Order (Variation)',
+ 'Enforceable Undertaking',
+ 'Injunction (Remedial Actions)',
+ 'Independent Review',
+ 'Training plan',
+ 'SAR Lookback',
+ 'Injunction (Remedial Action)',
+ 'VASP registration cancelled',
+ 'Risk Assessment',
+ 'Warning',
+ 'Restriction from acting as compliance officer',
+ 'Reprimand',
+ 'Assurance Review',
+ 'AML program report',
+ 'Licence revoked'
 ];
 
 function detectMetric(query: string): string | undefined {
@@ -282,83 +567,123 @@ function detectNonFineOnly(query: string): boolean {
 async function classifyQuery(query: string): Promise<QueryParams> {
   const openai = getOpenAI();
 
-  const systemPrompt = `You are a query analysis expert for regulatory enforcement data across GLOBAL regulators.
+  const systemPrompt = `You are a deterministic query analyzer for ENFORESIGHT regulatory enforcement data.
 
-🔴 CRITICAL: ENFORESIGHT IS AML ENFORCEMENT ONLY
-- The database ONLY contains Anti-Money Laundering (AML) enforcement actions
-- ALL records have field: "AML" or "AML+"
-- violation_types are SPECIFIC violations WITHIN AML context
-- When user asks about "AML cases", they mean our entire database
+CRITICAL DOMAIN RULES
+================================================
+- The database contains ONLY Anti-Money Laundering (AML) enforcement actions
+- "Sanctioned", "fined", "penalised", "enforced against" describe ENFORCEMENT ACTIONS, NOT violationTypes
+- NEVER extract violationTypes from these words
+- Do NOT infer violationTypes unless explicitly mentioned in the query
 
-IMPORTANT CLARIFICATION:
-- "Sanctioned" is NOT a violation type — it describes the enforcement action itself
-- If user asks "Which sector is most sanctioned?", extract NO violation_types
+AVAILABLE FIELDS (ONLY THESE)
+================================================
+Core:
+- regulatorName (string) — The financial authority issuing the penalty (e.g., ${SAMPLE_REGULATORS.join(', ')}).
+- subjectName (string) — The company or individual sanctioned by the regulator.
+- jurisdiction (string) — The country or region where the regulator operates (e.g., United Kingdom, Australia).
 
-Supported Regulators (case-insensitive): ${SUPPORTED_REGULATORS.join(', ')}
-Common Violation Types (WITHIN AML): ${SUPPORTED_VIOLATION_TYPES.join(', ')}
+Classification:
+- sector (string | optional) — financial sector (e.g., ${SAMPLE_SECTORS.join(', ')})
+- field (string | optional) — primary classification (AML, Banking, Securities, etc.)
 
-Query Types:
-- "statistical": counts, sums, averages, trends, totals
-- "semantic": descriptions, explanations, analysis, premises, reasons
-- "hybrid": both statistics AND detailed information
-- "exact_match": specific enforcement action by company/date
+Dates:
+- dateOfAction (string | ISO format)
+- year (number)
+- month (number)
 
-Tables:
-enforcements: defineTable({
-    // Core identification
-    documentId: v.optional(v.string()),
-    regulatorName: v.string(),
-    subjectName: v.string(),
-    subjectNameCase: v.optional(v.string()), // Case-preserved version of subject name
-    jurisdiction: v.string(),
+Actions & Violations:
+- enforcementActionType (string | string[]) — type of enforcement action taken (e.g., ${SAMPLE_ENFORCEMENT_ACTION_TYPES.join(', ')})
+- violationTypes (string | string[]) — specific violations within AML context (e.g., ${SAMPLE_VIOLATION_TYPES.join(', ')})
 
-    // Classification
-    sector: v.optional(v.string()),
-    field: v.optional(v.string()),
+Penalties:
+- fineAmount (number) — monetary penalty
+- currency (string) — currency of fine
 
-    // Date information
-    dateOfAction: v.optional(v.string()),
-    year: v.optional(v.number()),
-    month: v.optional(v.number()),
+Status:
+- underAppeal (boolean)
 
-    // Action details
-    enforcementActionType: v.optional(v.union(v.string(), v.array(v.string()))),
-    violationTypes: v.optional(v.union(v.string(), v.array(v.string()))),
+Content:
+- enforcementNoticeUrl / enforcementNoticeURL
+- enforcementNoticeSummary
+- enforcementNoticeData
 
-    // Financial penalties
-    fineAmount: v.optional(v.number()),
-    currency: v.optional(v.string()),
+EXPLICIT INTERPRETATION RULES
+================================================
+NEVER treat these as violationTypes:
+- "sanctioned" / "fined" / "penalised" / "enforced against" → these describe enforcement actions
+- "Most sanctioned sector" → extract sector filter, use case_count metric, NOT violation_types
+- "Largest fines" → extract fineAmount metric (max), NOT violation_types
+- "Actions against Company X" → extract company name, NOT violation_types
 
-    // Status
-    underAppeal: v.optional(v.boolean()),
+DO extract violationTypes ONLY when:
+- "violations of X", "violated X", "charged with X", "KYC breach", "SAR reporting failure", etc.
 
-    // Content
-    enforcementNoticeUrl: v.optional(v.string()),
-    enforcementNoticeURL: v.optional(v.string()), // Legacy field (typo in some records)
-    enforcementNoticeData: v.optional(v.string()),
-    enforcementNoticeSummary: v.optional(v.string()),
-    enforcementFile: v.optional(v.union(v.null(), v.string())),
+METRIC INTERPRETATION
+================================================
+- "how many / count" → statistical query, requires_aggregation=true
+- "largest / biggest / highest fine" → statistical, metric='max'
+- "smallest / lowest fine" → statistical, metric='min'
+- "total fines" → statistical, metric='sum'
+- "average fine" → statistical, metric='average'
+- "most common violation" → statistical, metric from violation breakdown
+- "trend / over time / year by year" → statistical with year grouping
+- "most sanctioned / most fined" → statistical, case_count metric
+- "top N sectors / regulators" → statistical, sorted descending
+- "describe / explain / learn about" → semantic query, requires_semantic_search=true
+- "compare X vs Y" → hybrid query (both statistical and semantic)
+- "find record of Company X" → exact_match query
 
-    // Embeddings for semantic search
-    summaryEmbedding: v.optional(v.array(v.number())),
-    fullTextEmbedding: v.optional(v.array(v.number())),
+CRITICAL DISTINCTIONS
+================================================
+- "fines" = records with fineAmount > 0
+- "cases" = all enforcement records (regardless of fine)
+- "sanctioned" = enforcement action taken (could include non-monetary actions)
+- "non-monetary actions" = records where fineAmount = 0
 
-    // Metadata
-    createdAt: v.optional(v.string()),
-    updatedAt: v.optional(v.string()),
-  })
+QUERY TYPE SELECTION
+================================================
+- statistical: aggregations, counts, totals, trends
+- semantic: descriptions, explanations, analysis
+- hybrid: both statistics AND detailed information
+- exact_match: specific enforcement action by company/date
+
+CONFIDENCE SCORING
+================================================
+Assign confidence level:
+- high: Clear intent, all entities unambiguous, well-defined scope
+- medium: Some ambiguity (e.g., "most fined" without specifying by whom), multiple possible interpretations
+- low: Very ambiguous query, requires clarification, could mean multiple things
+
+AMBIGUITIES TO FLAG
+================================================
+- Multiple currencies involved in comparison → flag ambiguity
+- "sanctioned" used but no clear metric → flag ambiguity
+- "most" without specifying dimension → flag ambiguity
+- Missing key context (e.g., "in which sector?") → flag ambiguity
 
 Return ONLY valid JSON with schema:
 {
   "query_type": "statistical|semantic|hybrid|exact_match",
   "intent": "count|sum|describe|explain|analyze|compare|list",
   "entities": {
-    "companies": [], "regulators": [], "dates": {},
-    "violation_types": [], "jurisdictions": [], "sectors": [], "fields": []
+    "subjectName": [],              // Populate with company/individual names mentioned in the query else keep this empty list
+    "regulatorName": [],            // Populate with regulator names mentioned in the query else keep this empty list
+    "month": [],                    // Populate with month(s) mentioned in the query else keep this empty list
+    "year": [],                     // Populate with year(s) mentioned in the query else keep this empty list
+    "violationTypes": [],           // Populate with violation types mentioned in the query else keep this empty list
+    "jurisdiction": [],             // Populate with jurisdiction names mentioned in the query else keep this empty list
+    "sector": [],                   // Populate with sector names mentioned in the query else keep this empty list
+    "field": [],                    // Populate with field names mentioned in the query else keep this empty list
+    "enforcementActionType": [],    // Populate with enforcement action types mentioned in the query else keep this empty list
+    "underAppeal": ''               // Populate with true/false if query explicitly mentions appeal status else keep this empty string
   },
   "requires_aggregation": boolean,
   "requires_semantic_search": boolean,
-  "semantic_depth": "summary|detailed|comprehensive"
+  "semantic_depth": "summary|detailed|comprehensive",
+  "confidence": "high|medium|low",
+  "ambiguities": [],
+  "metric": "case_count|total_penalty|average_penalty|median_penalty|max_penalty|min_penalty|null"
 }`;
 
   const userPrompt = `Analyze this query and extract structured information: "${query}"
@@ -904,14 +1229,15 @@ async function retrieveEnforcements(
     top_records: [],
   };
 
+  const enforcementsFound = await fetchAllEnforcementsPaginated(needsSemantic, serverRegulator);
+
   if (needsAggregation) {
-    const allLite = await fetchAllEnforcementsPaginated(false, serverRegulator);
-    results.aggregations = executeAggregation(allLite, filters, queryParams);
+    results.aggregations = executeAggregation(enforcementsFound, filters, queryParams);
     results.total_count = results.aggregations.count;
 
     // Top 10 records by fine amount (for context building)
     const seen = new Set<string>();
-    const deduped = allLite.filter(r => {
+    const deduped = enforcementsFound.filter(r => {
       if (!r._id || seen.has(r._id)) return false;
       seen.add(r._id);
       return true;
@@ -922,13 +1248,9 @@ async function retrieveEnforcements(
   }
 
   if (needsSemantic) {
-    const allWithEmbed = await fetchAllEnforcementsPaginated(
-      true,
-      serverRegulator
-    );
     results.semantic_results = await executeSemanticSearch(
       queryParams.original_query ?? '',
-      allWithEmbed,
+      enforcementsFound,
       filters,
       10
     );
@@ -939,7 +1261,7 @@ async function retrieveEnforcements(
   if (queryType === 'exact_match') {
     const source = results.top_records.length
       ? results.top_records
-      : await fetchAllEnforcementsPaginated(false, serverRegulator);
+      : enforcementsFound;
     results.exact_matches = filterRecordsManually(source, filters).slice(0, 5);
     if (!needsAggregation && !needsSemantic)
       results.total_count = results.exact_matches.length;
