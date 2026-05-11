@@ -6,8 +6,7 @@
  * vector-similarity search → OpenAI Chat Completions response.
  *
  * Model is configurable via OPENAI_MODEL env var (default: gpt-5.5).
- * gpt-5.5 is used for all AI tasks (JSON extraction at temperature=0
- * and short factual answers at temperature=0.1).
+ * Uses temperature=1 for all API calls (required by gpt-5.5 model).
  */
 
 import { randomUUID } from 'crypto';
@@ -18,6 +17,7 @@ import { logger } from '../utils/logger';
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const AI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-5.5';
+console.log(`Using AI model: ${AI_MODEL}`);
 const EMBEDDING_MODEL =
   process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
 const MAX_TOKENS = parseInt(process.env.MAX_TOKENS ?? '800', 10);
@@ -44,7 +44,13 @@ interface QueryEntities {
 }
 
 interface QueryParams {
-  query_type?: 'statistical' | 'semantic' | 'hybrid' | 'exact_match';
+  query_type?:
+    | 'aggregation'
+    | 'record_lookup'
+    | 'record_search'
+    | 'comparative_analysis'
+    | 'grounded_summary'
+    | 'unsupported';
   intent?: string;
   entities?: QueryEntities;
   requires_aggregation?: boolean;
@@ -56,6 +62,9 @@ interface QueryParams {
   non_fine_only?: boolean;
   original_query?: string;
   error?: string;
+  confidence?: 'high' | 'medium' | 'low';
+  ambiguities?: string[];
+  unsupported_reason?: string | null;
 }
 
 interface CurrencyStat {
@@ -205,7 +214,7 @@ function parseRelativeTimePeriod(
 const SUPPORTED_REGULATORS = [
   'AUSTRAC',
   'FCA',
-  'FinCEN',
+  'FINCEN',
   'FINTRAC',
   'MAS',
   'HKMA',
@@ -248,10 +257,13 @@ const SUPPORTED_VIOLATION_TYPES = [
 
 function detectMetric(query: string): string | undefined {
   const q = query.toLowerCase();
-  if (/\b(?:largest|biggest|highest|maximum|max)\b/.test(q)) return 'max';
-  if (/\b(?:smallest|lowest|minimum|min)\b/.test(q)) return 'min';
+  if (/\b(?:most|largest|biggest|highest|maximum|max)\b/.test(q)) return 'max';
+  if (/\b(?:least|smallest|lowest|minimum|min)\b/.test(q)) return 'min';
   if (/\b(?:average|mean)\b/.test(q)) return 'average';
   if (/\b(?:total|sum)\b/.test(q)) return 'sum';
+  // When query asks about "fines" with count language, use specific fine_count metric
+  if (/\b(?:how many|number of|count)\b/.test(q) && /\bfines?\b/.test(q))
+    return 'fine_count';
   if (/\b(?:how many|number of|count)\b/.test(q)) return 'count';
   if (/\b(?:trend|over time|year by year|per year)\b/.test(q)) return 'trend';
   return undefined;
@@ -267,110 +279,228 @@ function detectFineOnly(query: string): boolean {
 
 function detectNonFineOnly(query: string): boolean {
   const q = query.toLowerCase();
-  // Matches: "apart from fines", "other than penalties", "non-monetary",
-  // "besides fines", "other actions", "without a fine", "no fine"
-  return (
-    /apart from.*(fin|penalt|monetar)|other than.*(fin|penalt|monetar)|non[-\s]?monetar|without.*(fin|penalt)|besides.*(fin|penalt)|no monetary|\bno fine/i.test(
-      q
-    ) ||
-    (/\bother\b/.test(q) &&
-      /\bfin(e|es|ed|ing)\b|\bpenalt/i.test(q) &&
-      /\baction|\btaken|\bmeasure|\bsanction/i.test(q))
+
+  // Extract what comes after exclusion phrases and check if it's fine-related
+  // This handles: "apart from imposing fines", "other than penalties", etc.
+  const exclusionMatch = q.match(
+    /\b(?:apart from|other than|excluding|without|besides)\s+(.+?)(?:\.|$|[?!])/
   );
+
+  if (exclusionMatch && exclusionMatch[1]) {
+    const excluded = exclusionMatch[1];
+    // Check if the excluded item is fine-related
+    if (/fines?|penalt(?:y|ies)|monetary|sanctions?|financial/.test(excluded)) {
+      return true;
+    }
+  }
+
+  // Also catch explicit non-monetary patterns not preceded by exclusion phrases
+  if (/non[-\s]?monetar|no monetary|\bno fine/.test(q)) {
+    return true;
+  }
+
+  return false;
 }
 
-async function classifyQuery(query: string): Promise<QueryParams> {
+export async function classifyQuery(query: string): Promise<QueryParams> {
   const openai = getOpenAI();
+  const convex = getConvexClient();
 
-  const systemPrompt = `You are a query analysis expert for regulatory enforcement data across GLOBAL regulators.
+  // Fetch lookup tables dynamically from Convex
+  let violationTypesStr = SUPPORTED_VIOLATION_TYPES.join(', ');
+  let sectorsStr = 'Various sectors';
+  let enforcementActionTypesStr = 'Various enforcement action types';
 
-🔴 CRITICAL: ENFORESIGHT IS AML ENFORCEMENT ONLY
-- The database ONLY contains Anti-Money Laundering (AML) enforcement actions
-- ALL records have field: "AML" or "AML+"
-- violation_types are SPECIFIC violations WITHIN AML context
-- When user asks about "AML cases", they mean our entire database
+  try {
+    // Fetch violation types
+    const violationTypesData = (await convex.query(
+      'violationTypes:getAllViolationTypes' as any
+    )) as any[];
+    if (Array.isArray(violationTypesData)) {
+      const names = violationTypesData
+        .map((vt: any) => vt.name)
+        .filter((n: string) => n && n.trim())
+        .sort();
+      if (names.length > 0) {
+        violationTypesStr = names.join(', ');
+      }
+    }
 
-IMPORTANT CLARIFICATION:
-- "Sanctioned" is NOT a violation type — it describes the enforcement action itself
-- If user asks "Which sector is most sanctioned?", extract NO violation_types
+    // Fetch sectors
+    const sectorsData = (await convex.query(
+      'sectors:getAllSectors' as any
+    )) as any[];
+    if (Array.isArray(sectorsData)) {
+      const names = sectorsData
+        .map((s: any) => s.name)
+        .filter((n: string) => n && n.trim())
+        .sort();
+      if (names.length > 0) {
+        sectorsStr = names.join(', ');
+      }
+    }
+
+    // Fetch enforcement action types
+    const actionTypesData = (await convex.query(
+      'enforcementActionTypes:getAllActionTypes' as any
+    )) as any[];
+    if (Array.isArray(actionTypesData)) {
+      const names = actionTypesData
+        .map((at: any) => at.name)
+        .filter((n: string) => n && n.trim())
+        .sort();
+      if (names.length > 0) {
+        enforcementActionTypesStr = names.join(', ');
+      }
+    }
+  } catch (err) {
+    logger.warn(
+      { err },
+      '[aiChatService] Failed to fetch lookup tables, using defaults'
+    );
+  }
+
+  //console.log(`Sectors: ${sectorsStr}`);
+  //console.log(`Violation Types: ${violationTypesStr}`);
+  //console.log(`Enforcement Action Types: ${enforcementActionTypesStr}`);
+
+  const systemPrompt = `You are a deterministic query analyzer for ENFORESIGHT regulatory enforcement data.
+
+CRITICAL DOMAIN RULES
+================================================
+- The database contains ONLY Anti-Money Laundering (AML) enforcement actions
+- "Sanctioned", "fined", "penalised", "enforced against" describe ENFORCEMENT ACTIONS, NOT violationTypes
+- NEVER extract violationTypes from these words
+- Do NOT infer violationTypes unless explicitly mentioned in the query
+
+AVAILABLE FIELDS (ONLY THESE)
+================================================
+Core:
+- regulatorName (string)
+- subjectName (string)
+- jurisdiction (string)
+
+Classification:
+- sector (string | optional) — financial sector
+- field (string | optional) — primary classification (AML, Banking, Securities, etc.)
+
+Dates:
+- dateOfAction (string | ISO format)
+- year (number)
+- month (number)
+
+Actions & Violations:
+- enforcementActionType (string | string[]) — type of enforcement action taken
+- violationTypes (string | string[]) — specific violations within AML context
+
+Penalties:
+- fineAmount (number) — monetary penalty
+- currency (string) — currency of fine
+
+Status:
+- underAppeal (boolean)
+
+Content:
+- enforcementNoticeUrl / enforcementNoticeURL
+- enforcementNoticeSummary
+- enforcementNoticeData
+
+EXPLICIT INTERPRETATION RULES
+================================================
+NEVER treat these as violationTypes:
+- "sanctioned" / "fined" / "penalised" / "enforced against" → these describe enforcement actions
+- "Most sanctioned sector" → extract sector filter, use case_count metric, NOT violation_types
+- "Largest fines" → extract fineAmount metric (max), NOT violation_types
+- "Actions against Company X" → extract company name, NOT violation_types
+
+DO extract violationTypes ONLY when:
+- "violations of X", "violated X", "charged with X", "KYC breach", "SAR reporting failure", etc.
+
+METRIC INTERPRETATION
+================================================
+- "how many / case_count" → statistical query, requires_aggregation=true
+- "largest / biggest / highest fine" → statistical, metric='max_penalty'
+- "smallest / lowest fine" → statistical, metric='min_penalty'
+- "total fines" → statistical, metric='total_penalty'
+- "average fine" → statistical, metric='average_penalty'
+- "most common violation" → statistical, metric='violation_frequency'
+- "proportion / percentage" → statistical, metric='proportion'
+- "average per year / per period" → statistical, metric='average_per_period'
+- "trend / over time / year by year" → statistical with year grouping
+- "most sanctioned / most fined" → statistical, case_count metric
+- "top N sectors / regulators" → statistical, sorted descending
+- "describe / explain / learn about" → semantic query, requires_semantic_search=true
+- "compare X vs Y" → hybrid query (both statistical and semantic)
+- "find record of Company X" → exact_match query
+
+CRITICAL DISTINCTIONS
+================================================
+- "fines" = records with fineAmount > 0
+- "cases" = all enforcement records (regardless of fine)
+- "sanctioned" = enforcement action taken (could include non-monetary actions)
+- "non-monetary actions" = records where fineAmount = 0
+
+QUERY TYPE SELECTION
+================================================
+- aggregation: counts, averages, totals, rankings, trends (requires aggregation logic)
+- record_lookup: exact company/date/action lookup (retrieve specific record)
+- record_search: find cases matching filters (exploratory search with semantic ranking)
+- comparative_analysis: compare two regulators/sectors/periods (side-by-side analysis)
+- grounded_summary: explain retrieved cases only (analysis of found cases, not generating summaries)
+- unsupported: meta-questions about database schema, bulk exports without filters
+
+IMPLICIT FIELD MAPPING
+================================================
+- "Country" / "which countries" → jurisdiction
+- "Warnings", "bans", "suspensions" → enforcementActionType values
+- "Issues / problems" → violationTypes
+
+CONFIDENCE SCORING
+================================================
+Assign confidence level:
+- high: Clear intent, all entities unambiguous, well-defined scope
+- medium: Some ambiguity (e.g., "most fined" without specifying by whom), multiple possible interpretations
+- low: Very ambiguous query, requires clarification, could mean multiple things
+
+AMBIGUITIES & SPECIAL HANDLING
+================================================
+- Multiple currencies involved in comparison → flag ambiguity
+- "sanctioned" used but no clear metric → flag ambiguity
+- "most" without specifying dimension → flag ambiguity
+- Missing key context (e.g., "in which sector?") → flag ambiguity
+- Queries requesting "all data" or "entire database" without filters → flag ambiguity + set limit to 100
+- Meta-questions about database scope/content → query_type='unsupported', reason='system_info_request'
 
 Supported Regulators (case-insensitive): ${SUPPORTED_REGULATORS.join(', ')}
-Common Violation Types (WITHIN AML): ${SUPPORTED_VIOLATION_TYPES.join(', ')}
-
-Query Types:
-- "statistical": counts, sums, averages, trends, totals
-- "semantic": descriptions, explanations, analysis, premises, reasons
-- "hybrid": both statistics AND detailed information
-- "exact_match": specific enforcement action by company/date
-
-Tables:
-enforcements: defineTable({
-    // Core identification
-    documentId: v.optional(v.string()),
-    regulatorName: v.string(),
-    subjectName: v.string(),
-    subjectNameCase: v.optional(v.string()), // Case-preserved version of subject name
-    jurisdiction: v.string(),
-
-    // Classification
-    sector: v.optional(v.string()),
-    field: v.optional(v.string()),
-
-    // Date information
-    dateOfAction: v.optional(v.string()),
-    year: v.optional(v.number()),
-    month: v.optional(v.number()),
-
-    // Action details
-    enforcementActionType: v.optional(v.union(v.string(), v.array(v.string()))),
-    violationTypes: v.optional(v.union(v.string(), v.array(v.string()))),
-
-    // Financial penalties
-    fineAmount: v.optional(v.number()),
-    currency: v.optional(v.string()),
-
-    // Status
-    underAppeal: v.optional(v.boolean()),
-
-    // Content
-    enforcementNoticeUrl: v.optional(v.string()),
-    enforcementNoticeURL: v.optional(v.string()), // Legacy field (typo in some records)
-    enforcementNoticeData: v.optional(v.string()),
-    enforcementNoticeSummary: v.optional(v.string()),
-    enforcementFile: v.optional(v.union(v.null(), v.string())),
-
-    // Embeddings for semantic search
-    summaryEmbedding: v.optional(v.array(v.number())),
-    fullTextEmbedding: v.optional(v.array(v.number())),
-
-    // Metadata
-    createdAt: v.optional(v.string()),
-    updatedAt: v.optional(v.string()),
-  })
+Supported Violation Types: ${violationTypesStr}
+Available Sectors: ${sectorsStr}
+Enforcement Action Types: ${enforcementActionTypesStr}
 
 Return ONLY valid JSON with schema:
 {
-  "query_type": "statistical|semantic|hybrid|exact_match",
+  "query_type": "aggregation|record_lookup|record_search|comparative_analysis|grounded_summary|unsupported",
   "intent": "count|sum|describe|explain|analyze|compare|list",
   "entities": {
-    "companies": [], "regulators": [], "dates": {},
-    "violation_types": [], "jurisdictions": [], "sectors": [], "fields": []
+    "companies": [], 
+    "regulators": [], 
+    "dates": {},
+    "violation_types": [], 
+    "jurisdictions": [], 
+    "sectors": [], 
+    "fields": []
   },
   "requires_aggregation": boolean,
   "requires_semantic_search": boolean,
-  "semantic_depth": "summary|detailed|comprehensive"
+  "semantic_depth": "summary|detailed|comprehensive",
+  "confidence": "high|medium|low",
+  "ambiguities": [],
+  "metric": "case_count|total_penalty|average_penalty|max_penalty|min_penalty|proportion|average_per_period|fine_count|null",
+  "fine_only": boolean,
+  "non_fine_only": boolean,
+  "unsupported_reason": null
 }`;
 
-  const userPrompt = `Analyze this query and extract structured information: "${query}"
-
-Examples:
-1. "How many FCA fines?" → {"query_type":"statistical","intent":"count","entities":{"regulators":["FCA"]},"requires_aggregation":true,"requires_semantic_search":false}
-2. "Describe AUSTRAC action against Commonwealth Bank" → {"query_type":"semantic","intent":"describe","entities":{"companies":["Commonwealth Bank"],"regulators":["AUSTRAC"]},"requires_aggregation":false,"requires_semantic_search":true,"semantic_depth":"detailed"}
-3. "How many FinCEN sanctions and why?" → {"query_type":"hybrid","intent":"count","entities":{"regulators":["FinCEN"]},"requires_aggregation":true,"requires_semantic_search":true}
-4. "Show largest fines by FINTRAC in Canada" → {"query_type":"statistical","intent":"list","entities":{"regulators":["FINTRAC"],"jurisdictions":["Canada"]},"requires_aggregation":true,"requires_semantic_search":false}
-5. "Compare FCA vs MAS enforcement" → {"query_type":"hybrid","intent":"compare","entities":{"regulators":["FCA","MAS"]},"requires_aggregation":true,"requires_semantic_search":true}
-
-Now analyze and return JSON:`;
+  const userPrompt = `Analyze this query and extract structured information: "${query}". Now analyze and return JSON:`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -379,13 +509,20 @@ Now analyze and return JSON:`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0,
+      temperature: 1,
       response_format: { type: 'json_object' },
     });
+
+    console.log('LLM response:', response.choices[0]?.message.content);
 
     const result: QueryParams = JSON.parse(
       response.choices[0]?.message.content ?? '{}'
     );
+
+    // ✅ DEBUG OUTPUT - Check the parsed query classification
+    console.log('=== QUERY CLASSIFICATION RESULT ===');
+    console.log(JSON.stringify(result, null, 2));
+    console.log('===================================');
 
     // Remove generic "AML" — the entire platform is AML, so it's not a useful filter
     if (result.entities?.violation_types?.length) {
@@ -424,6 +561,40 @@ Now analyze and return JSON:`;
     // non_fine_only overrides fine_only — they are mutually exclusive
     if (result.non_fine_only) result.fine_only = false;
     result.original_query = query;
+
+    // ✅ MAP NEW QUERY TYPES TO DATA RETRIEVAL FLAGS
+    // This determines how data will be fetched and processed
+    switch (result.query_type) {
+      case 'aggregation':
+        result.requires_aggregation = true;
+        result.requires_semantic_search = false;
+        break;
+      case 'record_lookup':
+        result.requires_aggregation = false;
+        result.requires_semantic_search = false;
+        break;
+      case 'record_search':
+        result.requires_aggregation = false;
+        result.requires_semantic_search = true;
+        break;
+      case 'comparative_analysis':
+        result.requires_aggregation = true;
+        result.requires_semantic_search = true;
+        break;
+      case 'grounded_summary':
+        result.requires_aggregation = false;
+        result.requires_semantic_search = true;
+        break;
+      case 'unsupported':
+        result.requires_aggregation = false;
+        result.requires_semantic_search = false;
+        break;
+      default:
+        // Fallback to semantic if unknown
+        result.requires_aggregation = false;
+        result.requires_semantic_search = true;
+    }
+
     result.convex_filters = buildFilters(result.entities ?? {});
 
     logger.debug(
@@ -437,7 +608,7 @@ Now analyze and return JSON:`;
       '[aiChatService] Query classification failed, using semantic fallback'
     );
     return {
-      query_type: 'semantic',
+      query_type: 'record_search',
       intent: 'search',
       entities: {},
       convex_filters: {},
@@ -512,6 +683,11 @@ function buildFilters(entities: QueryEntities): Record<string, any> {
     f.year = years.length === 1 ? years[0] : years;
   }
 
+  // ✅ NOTE: fine_only and non_fine_only are set separately in classifyQuery()
+  // after buildFilters() completes, not passed through convex_filters.
+  // They are used in executeAggregation() to determine which records
+  // to include in the fine-amount calculation (before deduplication).
+
   return f;
 }
 
@@ -575,6 +751,102 @@ async function fetchAllEnforcementsPaginated(
   return all;
 }
 
+// ─── Full Text Search / Fuzzy Matching ────────────────────────────────────────
+
+/**
+ * Normalize sector names for comparison.
+ * - Lowercase
+ * - Remove extra spaces
+ * - Handle common variations (singular/plural)
+ * - Remove articles
+ */
+function normalizeSector(s: string): string {
+  if (!s || typeof s !== 'string') return '';
+
+  return (
+    s
+      .toLowerCase()
+      .trim()
+      // Remove extra whitespace
+      .replace(/\s+/g, ' ')
+      // Normalize common plural variations
+      .replace(/\b(provider)s\b/g, '$1')
+      .replace(/\b(asset)s\b/g, '$1')
+      .replace(/\b(service)s\b/g, '$1')
+      .replace(/\b(institution)s\b/g, '$1')
+      .replace(/\b(exchange)s\b/g, '$1')
+      .replace(/\b(fund)s\b/g, '$1')
+      .replace(/\b(company|companies)\b/g, 'company')
+      .replace(/\b(bank)s\b/g, '$1')
+      // Remove trailing 's' for other words
+      .replace(/s\b/g, '')
+  );
+}
+
+/**
+ * Calculate Levenshtein distance between two strings.
+ * Returns the minimum number of single-character edits (insertions, deletions, substitutions).
+ */
+function levenshteinDistance(a: string, b: string): number {
+  const len1 = a.length;
+  const len2 = b.length;
+  const matrix: number[][] = Array.from({ length: len1 + 1 }, (_, i) =>
+    Array.from({ length: len2 + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+
+  for (let i = 1; i <= len1; i++) {
+    const row = matrix[i];
+    const prevRow = matrix[i - 1];
+    if (!row || !prevRow) continue;
+
+    for (let j = 1; j <= len2; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row[j] = Math.min(
+        (prevRow[j] ?? 0) + 1, // deletion
+        (row[j - 1] ?? 0) + 1, // insertion
+        (prevRow[j - 1] ?? 0) + cost // substitution
+      );
+    }
+  }
+
+  return matrix[len1]?.[len2] ?? 0;
+}
+
+/**
+ * Calculate similarity score between two strings (0-1).
+ * Based on normalized comparison and Levenshtein distance.
+ */
+function stringSimilarity(a: string, b: string): number {
+  const norm_a = normalizeSector(a);
+  const norm_b = normalizeSector(b);
+
+  // Exact match after normalization
+  if (norm_a === norm_b) return 1.0;
+
+  // Substring match (fuzzy inclusion)
+  if (norm_a.includes(norm_b) || norm_b.includes(norm_a)) return 0.95;
+
+  // Levenshtein-based similarity
+  const maxLen = Math.max(norm_a.length, norm_b.length);
+  if (maxLen === 0) return 1.0;
+
+  const distance = levenshteinDistance(norm_a, norm_b);
+  return 1.0 - distance / maxLen;
+}
+
+/**
+ * Fuzzy match sector names with configurable threshold.
+ * Default threshold is 0.85 (85% similarity required).
+ */
+function fuzzyMatchSector(
+  recordSector: string,
+  querySector: string,
+  threshold = 0.85
+): boolean {
+  const similarity = stringSimilarity(recordSector, querySector);
+  return similarity >= threshold;
+}
+
 // ─── Manual in-process filtering ─────────────────────────────────────────────
 
 function filterRecordsManually(
@@ -631,16 +903,10 @@ function filterRecordsManually(
     }
 
     if (sectorFilter) {
-      const rs = (record.sector ?? '').toLowerCase();
-      const norm = (s: string) => s.toLowerCase().replace(/s$/, '');
+      const rs = record.sector ?? '';
       const match = Array.isArray(sectorFilter)
-        ? sectorFilter.some(
-            sf =>
-              norm(rs).includes(norm(sf as string)) ||
-              rs.includes((sf as string).toLowerCase())
-          )
-        : norm(rs).includes(norm(sectorFilter as string)) ||
-          rs.includes((sectorFilter as string).toLowerCase());
+        ? sectorFilter.some((sf: any) => fuzzyMatchSector(rs, sf, 0.85))
+        : fuzzyMatchSector(rs, sectorFilter as string, 0.85);
       if (!match) return false;
     }
 
@@ -880,13 +1146,8 @@ async function retrieveEnforcements(
   queryParams: QueryParams
 ): Promise<RetrievalResults> {
   const filters = queryParams.convex_filters ?? {};
-  const queryType = queryParams.query_type ?? 'hybrid';
-  const needsAggregation =
-    queryParams.requires_aggregation ??
-    (queryType === 'statistical' || queryType === 'hybrid');
-  const needsSemantic =
-    queryParams.requires_semantic_search ??
-    (queryType === 'semantic' || queryType === 'hybrid');
+  const needsAggregation = queryParams.requires_aggregation ?? false;
+  const needsSemantic = queryParams.requires_semantic_search ?? true;
 
   // If the query targets a single regulator, push that filter to Convex so it
   // uses the by_regulator index and reads only that regulator's documents.
@@ -936,13 +1197,13 @@ async function retrieveEnforcements(
       results.total_count = results.semantic_results.length;
   }
 
-  if (queryType === 'exact_match') {
+  // ✅ HANDLE RECORD LOOKUP (EXACT MATCH) - when neither aggregation nor semantic search is needed
+  if (!needsAggregation && !needsSemantic) {
     const source = results.top_records.length
       ? results.top_records
       : await fetchAllEnforcementsPaginated(false, serverRegulator);
     results.exact_matches = filterRecordsManually(source, filters).slice(0, 5);
-    if (!needsAggregation && !needsSemantic)
-      results.total_count = results.exact_matches.length;
+    results.total_count = results.exact_matches.length;
   }
 
   return results;
@@ -1150,6 +1411,79 @@ const AML_CAVEAT = `🔴 CRITICAL PLATFORM SCOPE: Enforesight tracks ANTI-MONEY 
 - "SANCTIONS" = all types of penalties (fines, warnings, bans, suspensions, etc.)
 - what other actions apart from imposing fines means where fineAmount=0.`;
 
+// ═════════════════════════════════════════════════════════════════════════════
+// 6 SPECIALIZED SYSTEM PROMPTS FOR NEW QUERY TAXONOMY
+// ═════════════════════════════════════════════════════════════════════════════
+
+const SYSTEM_PROMPT_AGGREGATION = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
+
+RESPONSE FORMAT: Keep answers SHORT and CONCISE (2-3 sentences maximum). State the final answer directly.
+CRITICAL COUNTING RULES:
+1. "fines"/"monetary penalties" → use fines_count (records with fineAmount > 0)
+2. "cases"/"actions" → use total count (all records)
+3. "LARGEST"/"BIGGEST"/"HIGHEST" → use Max value from currency breakdown
+4. "SMALLEST"/"LOWEST" → use Min value from currency breakdown
+5. "AVERAGE"/"MEAN" → use Average value from currency breakdown
+6. "TRENDS"/"over time" → use ONLY the "By Year" breakdown data — NEVER make up year counts`;
+
+const SYSTEM_PROMPT_RECORD_LOOKUP = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
+
+RESPONSE FORMAT: Focus on the specific record found. Present key details: company, regulator, date, action type, violations, fine amount.
+KEY POINTS:
+- Always identify which regulator took action
+- Clearly state the enforcement action type(s)
+- Quote violation types exactly as they appear in data
+- For monetary penalties: always show currency and amount
+- Keep answer SHORT (2-3 sentences) — user is looking for a specific case`;
+
+const SYSTEM_PROMPT_RECORD_SEARCH = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
+
+RESPONSE FORMAT: List the matching records found, ordered by relevance. For each: company, regulator, date, key violations.
+KEY POINTS:
+- Start with count: "Found X matching enforcement actions"
+- Show top 3-5 most relevant cases
+- For each case: company name, regulator, date, key violation types
+- Note if additional records exist beyond the shown sample
+- Keep descriptions SHORT (50 words max per record)`;
+
+const SYSTEM_PROMPT_COMPARATIVE_ANALYSIS = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
+
+RESPONSE FORMAT: Present side-by-side comparison. Start with summary (e.g., "FCA took X actions vs MAS took Y actions").
+KEY POINTS:
+- Lead with the numerical comparison
+- Break down by regulator/sector/period as relevant
+- Highlight key differences and patterns
+- Use aggregation data (counts, totals, averages) for comparison
+- Keep answer CONCISE (3-4 sentences) — focus on the comparative insight`;
+
+const SYSTEM_PROMPT_GROUNDED_SUMMARY = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
+
+RESPONSE FORMAT: Analyze and explain the RETRIEVED enforcement cases. Do NOT generate unsupported statements.
+KEY POINTS:
+- Base ALL observations on the retrieved cases shown above
+- Identify patterns: common violation types, action types, sectors, or regulated entities
+- Quote specific case details when relevant
+- If cases show a pattern (e.g., "banks were warned more than fined"), explain it
+- NEVER make claims about data you haven't seen — stick to retrieved cases only
+- Keep answer CONCISE (3-5 sentences) focused on what the data shows`;
+
+const SYSTEM_PROMPT_UNSUPPORTED = `You are a helpful assistant for the ENFORESIGHT regulatory enforcement database.
+
+RESPONSE FORMAT: Explain why the query cannot be answered and suggest a reformulation.
+KEY POINTS:
+- Acknowledge what the user asked for
+- Clearly state: "This database is limited to AML (anti-money laundering) enforcement actions"
+- Suggest a related question that CAN be answered (e.g., if they ask about bulk exports, suggest "Show me all AUSTRAC enforcement actions")
+- Keep answer SHORT (2-3 sentences)
+- Offer a helpful alternative`;
+
+// ═════════════════════════════════════════════════════════════════════════════
+
 const SYSTEM_PROMPT_STATISTICAL = `You are an expert financial enforcement analyst specializing in AML enforcement.
 ${AML_CAVEAT}
 
@@ -1180,14 +1514,23 @@ async function generateAIResponse(
   retrieval: RetrievalResults
 ): Promise<{ content: string; tokens_used: number }> {
   const openai = getOpenAI();
-  const queryType = queryParams.query_type ?? 'hybrid';
+  const queryType = queryParams.query_type ?? 'record_search';
 
+  // ✅ ROUTE TO SPECIALIZED SYSTEM PROMPT BASED ON NEW 6-TYPE TAXONOMY
   const systemPrompt =
-    queryType === 'statistical'
-      ? SYSTEM_PROMPT_STATISTICAL
-      : queryType === 'semantic'
-        ? SYSTEM_PROMPT_SEMANTIC
-        : SYSTEM_PROMPT_DEFAULT;
+    queryType === 'aggregation'
+      ? SYSTEM_PROMPT_AGGREGATION
+      : queryType === 'record_lookup'
+        ? SYSTEM_PROMPT_RECORD_LOOKUP
+        : queryType === 'record_search'
+          ? SYSTEM_PROMPT_RECORD_SEARCH
+          : queryType === 'comparative_analysis'
+            ? SYSTEM_PROMPT_COMPARATIVE_ANALYSIS
+            : queryType === 'grounded_summary'
+              ? SYSTEM_PROMPT_GROUNDED_SUMMARY
+              : queryType === 'unsupported'
+                ? SYSTEM_PROMPT_UNSUPPORTED
+                : SYSTEM_PROMPT_DEFAULT;
 
   const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] =
     [{ role: 'system', content: systemPrompt }];
@@ -1234,7 +1577,7 @@ Please answer the user's question accurately based on the data provided above.`,
     model: AI_MODEL,
     messages,
     max_completion_tokens: MAX_TOKENS,
-    temperature: 0.1,
+    temperature: 1,
   });
 
   return {
@@ -1422,6 +1765,8 @@ export async function processAIQuery(
       }
     }
 
+    console.log(query);
+
     const isFollowup = isFollowupQuestion(query, conversationHistory);
     const formattedHistory = conversationHistory.map(m => ({
       role: m.role as string,
@@ -1430,6 +1775,64 @@ export async function processAIQuery(
 
     // Step 2: Classify query (entity extraction + query type)
     const queryParams = await classifyQuery(query);
+
+    // ✅ EARLY EXIT FOR UNSUPPORTED QUERIES
+    if (queryParams.query_type === 'unsupported') {
+      const unsupportedMessage =
+        queryParams.unsupported_reason ||
+        'This query is outside the scope of the ENFORESIGHT database. The system is limited to AML (anti-money laundering) enforcement actions. Please rephrase your question to focus on specific regulators, companies, sectors, or enforcement actions in our database.';
+
+      let messageId = '';
+      if (conversationId) {
+        try {
+          await convex.mutation('conversationMessages:addMessage' as any, {
+            conversation_id: conversationId,
+            role: 'user',
+            content: query,
+          });
+          const msgResult: any = await convex.mutation(
+            'conversationMessages:addMessage' as any,
+            {
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: unsupportedMessage,
+              metadata: {
+                query_type: 'unsupported',
+                unsupported_reason: queryParams.unsupported_reason,
+              },
+            }
+          );
+          messageId =
+            typeof msgResult === 'object'
+              ? String(msgResult?.messageId ?? '')
+              : String(msgResult ?? '');
+        } catch (err) {
+          logger.warn(
+            { err },
+            '[aiChatService] Could not persist unsupported query message'
+          );
+        }
+      }
+
+      return {
+        response: {
+          summary: unsupportedMessage,
+          count: 0,
+          records: [],
+        },
+        conversation_id: conversationId ?? '',
+        message_id: messageId,
+        metadata: {
+          model: AI_MODEL,
+          tokens_used: 0,
+          response_time_seconds: (Date.now() - startTime) / 1000,
+          search_time_seconds: 0,
+          openai_time_seconds: 0,
+          enforcements_found: 0,
+          is_followup_question: isFollowup,
+        },
+      };
+    }
 
     // Step 3: Retrieve enforcements (aggregation + vector search as applicable)
     const searchStart = Date.now();
