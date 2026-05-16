@@ -6,7 +6,7 @@
  * vector-similarity search → OpenAI Chat Completions response.
  *
  * Model is configurable via OPENAI_MODEL env var (default: gpt-5.5).
- * Uses temperature=1 for all API calls (required by gpt-5.5 model).
+ * gpt-5.5 is used for all AI tasks (Uses temperature=1 for all API calls, required by gpt-5.5 model).
  */
 
 import { randomUUID } from 'crypto';
@@ -592,7 +592,7 @@ export async function classifyQuery(query: string): Promise<QueryParams> {
   const convex = getConvexClient();
 
   // Fetch lookup tables dynamically from Convex
-  let violationTypesStr = SUPPORTED_VIOLATION_TYPES.join(', ');
+  let violationTypesStr = SAMPLE_VIOLATION_TYPES.join(', ');
   let sectorsStr = 'Various sectors';
   let enforcementActionTypesStr = 'Various enforcement action types';
 
@@ -661,12 +661,12 @@ CRITICAL DOMAIN RULES
 AVAILABLE FIELDS (ONLY THESE)
 ================================================
 Core:
-- regulatorName (string)
-- subjectName (string)
-- jurisdiction (string)
+- regulatorName (string) — The financial authority issuing the penalty (e.g., ${SAMPLE_REGULATORS.join(', ')}).
+- subjectName (string) — The company or individual sanctioned by the regulator.
+- jurisdiction (string) — The country or region where the regulator operates (e.g., United Kingdom, Australia).
 
 Classification:
-- sector (string | optional) — financial sector
+- sector (string | optional) — financial sector (e.g., ${SAMPLE_SECTORS.join(', ')})
 - field (string | optional) — primary classification (AML, Banking, Securities, etc.)
 
 Dates:
@@ -675,8 +675,8 @@ Dates:
 - month (number)
 
 Actions & Violations:
-- enforcementActionType (string | string[]) — type of enforcement action taken
-- violationTypes (string | string[]) — specific violations within AML context
+- enforcementActionType (string | string[]) — type of enforcement action taken (e.g., ${SAMPLE_ENFORCEMENT_ACTION_TYPES.join(', ')})
+- violationTypes (string | string[]) — specific violations within AML context (e.g., ${SAMPLE_VIOLATION_TYPES.join(', ')})
 
 Penalties:
 - fineAmount (number) — monetary penalty
@@ -735,6 +735,10 @@ QUERY TYPE SELECTION
 - unsupported: meta-questions about database schema, bulk exports without filters
 
 IMPLICIT FIELD MAPPING
+================================================
+- "Country" / "which countries" → jurisdiction
+- "Warnings", "bans", "suspensions" → enforcementActionType values
+- "Issues / problems" → violationTypes
 
 CONFIDENCE SCORING
 ================================================
@@ -752,23 +756,21 @@ AMBIGUITIES & SPECIAL HANDLING
 - Queries requesting "all data" or "entire database" without filters → flag ambiguity + set limit to 100
 - Meta-questions about database scope/content → query_type='unsupported', reason='system_info_request'
 
-Supported Regulators (case-insensitive): ${SUPPORTED_REGULATORS.join(', ')}
-Supported Violation Types: ${violationTypesStr}
-Available Sectors: ${sectorsStr}
-Enforcement Action Types: ${enforcementActionTypesStr}
-
 Return ONLY valid JSON with schema:
 {
   "query_type": "aggregation|record_lookup|record_search|comparative_analysis|grounded_summary|unsupported",
   "intent": "count|sum|describe|explain|analyze|compare|list",
   "entities": {
-    "companies": [], 
-    "regulators": [], 
-    "dates": {},
-    "violation_types": [], 
-    "jurisdictions": [], 
-    "sectors": [], 
-    "fields": []
+    "subjectName": [],              // Populate with company/individual names mentioned in the query else keep this empty list
+    "regulatorName": [],            // Populate with regulator names mentioned in the query else keep this empty list
+    "month": [],                    // Populate with month(s) mentioned in the query else keep this empty list
+    "year": [],                     // Populate with year(s) mentioned in the query else keep this empty list
+    "violationTypes": [],           // Populate with violation types mentioned in the query else keep this empty list
+    "jurisdiction": [],             // Populate with jurisdiction names mentioned in the query else keep this empty list
+    "sector": [],                   // Populate with sector names mentioned in the query else keep this empty list
+    "field": [],                    // Populate with field names mentioned in the query else keep this empty list
+    "enforcementActionType": [],    // Populate with enforcement action types mentioned in the query else keep this empty list
+    "underAppeal": ''               // Populate with true/false if query explicitly mentions appeal status else keep this empty string
   },
   "requires_aggregation": boolean,
   "requires_semantic_search": boolean,
@@ -1446,15 +1448,14 @@ async function retrieveEnforcements(
     top_records: [],
   };
 
-  const enforcementsFound = await fetchAllEnforcementsPaginated(needsSemantic, serverRegulator);
-
   if (needsAggregation) {
-    results.aggregations = executeAggregation(enforcementsFound, filters, queryParams);
+    const allLite = await fetchAllEnforcementsPaginated(false, serverRegulator);
+    results.aggregations = executeAggregation(allLite, filters, queryParams);
     results.total_count = results.aggregations.count;
 
     // Top 10 records by fine amount (for context building)
     const seen = new Set<string>();
-    const deduped = enforcementsFound.filter(r => {
+    const deduped = allLite.filter(r => {
       if (!r._id || seen.has(r._id)) return false;
       seen.add(r._id);
       return true;
@@ -1465,9 +1466,13 @@ async function retrieveEnforcements(
   }
 
   if (needsSemantic) {
+    const allWithEmbed = await fetchAllEnforcementsPaginated(
+      true,
+      serverRegulator
+    );
     results.semantic_results = await executeSemanticSearch(
       queryParams.original_query ?? '',
-      enforcementsFound,
+      allWithEmbed,
       filters,
       10
     );
@@ -1479,7 +1484,7 @@ async function retrieveEnforcements(
   if (!needsAggregation && !needsSemantic) {
     const source = results.top_records.length
       ? results.top_records
-      : enforcementsFound;
+      : await fetchAllEnforcementsPaginated(false, serverRegulator);
     results.exact_matches = filterRecordsManually(source, filters).slice(0, 5);
     results.total_count = results.exact_matches.length;
   }
@@ -1677,8 +1682,7 @@ function buildContext(
 
 // ─── AI response generation ───────────────────────────────────────────────────
 
-const AML_CAVEAT = `You are an expert financial enforcement analyst specializing in AML enforcement.
-🔴 CRITICAL PLATFORM SCOPE: Enforesight tracks ANTI-MONEY LAUNDERING (AML) enforcement actions ONLY.
+const AML_CAVEAT = `🔴 CRITICAL PLATFORM SCOPE: Enforesight tracks ANTI-MONEY LAUNDERING (AML) enforcement actions ONLY.
 - ALL statistics are for AML enforcement actions exclusively
 - "FINES" = monetary penalties only (fineAmount > 0)
 - "CASES" or "ACTIONS" = all enforcement actions
@@ -1688,9 +1692,7 @@ const AML_CAVEAT = `You are an expert financial enforcement analyst specializing
 - "FINES" = monetary penalties only (count records where fineAmount > 0)
 - "CASES" or "ACTIONS" = all enforcement actions (regardless of fine amount)
 - "SANCTIONS" = all types of penalties (fines, warnings, bans, suspensions, etc.)
-- what other actions apart from imposing fines means where fineAmount=0.
-
-RESPONSE FORMAT: Keep answers SHORT and CONCISE`;
+- what other actions apart from imposing fines means where fineAmount=0.`;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // 6 SPECIALIZED SYSTEM PROMPTS FOR NEW QUERY TAXONOMY
@@ -1768,6 +1770,7 @@ KEY POINTS:
 const SYSTEM_PROMPT_STATISTICAL = `You are an expert financial enforcement analyst specializing in AML enforcement.
 ${AML_CAVEAT}
 
+RESPONSE FORMAT: Keep answers SHORT and CONCISE (2-3 sentences maximum). State the final answer directly.
 CRITICAL COUNTING RULES:
 1. "fines"/"monetary penalties" → use fines_count (records with fineAmount > 0)
 2. "cases"/"actions" → use total count (all records)
@@ -1776,9 +1779,15 @@ CRITICAL COUNTING RULES:
 5. "AVERAGE"/"MEAN" → use Average value from currency breakdown
 6. "TRENDS"/"over time" → use ONLY the "By Year" breakdown data — NEVER make up year counts`;
 
-const SYSTEM_PROMPT_SEMANTIC = `${AML_CAVEAT}. Focus on key findings and outcomes. Avoid unnecessary detail.`;
+const SYSTEM_PROMPT_SEMANTIC = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
 
-const SYSTEM_PROMPT_DEFAULT = `${AML_CAVEAT} (2-4 sentences). Combine numbers with brief context. Do NOT show calculation steps.`;
+RESPONSE FORMAT: Keep answers SHORT and CONCISE. Focus on key findings and outcomes. Avoid unnecessary detail.`;
+
+const SYSTEM_PROMPT_DEFAULT = `You are an expert financial enforcement analyst specializing in AML enforcement.
+${AML_CAVEAT}
+
+RESPONSE FORMAT: Keep answers SHORT and CONCISE (2-4 sentences). Combine numbers with brief context. Do NOT show calculation steps.`;
 
 async function generateAIResponse(
   userQuery: string,
