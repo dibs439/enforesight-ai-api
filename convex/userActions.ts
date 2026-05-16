@@ -19,6 +19,7 @@ export const createUserSecure = action({
     lastName: v.string(),
     email: v.string(),
     password: v.string(),
+    active: v.optional(v.boolean()),
     role: v.union(v.literal('admin'), v.literal('editor')),
   },
   handler: async (ctx, args): Promise<string> => {
@@ -29,6 +30,7 @@ export const createUserSecure = action({
     return await ctx.runMutation(api.users.createUser, {
       ...args,
       password: hashedPassword,
+      active: args.active,
     });
   },
 });
@@ -94,7 +96,7 @@ export const createUserWithActivation = action({
   },
   handler: async (ctx, args): Promise<any> => {
     // Generate activation code (UUID-like)
-    const crypto = await import('crypto');
+    const crypto = globalThis.crypto;
     const activationCode = crypto.randomUUID();
 
     // Set expiry to 24 hours from now
@@ -132,7 +134,7 @@ export const createUserWithActivationAndPassword = action({
   },
   handler: async (ctx, args): Promise<any> => {
     // Generate activation code (UUID-like)
-    const crypto = await import('crypto');
+    const crypto = globalThis.crypto;
     const activationCode = crypto.randomUUID();
 
     // Set expiry to 24 hours from now
@@ -181,7 +183,7 @@ export const resendActivationEmail = action({
     }
 
     // Generate new activation code
-    const crypto = await import('crypto');
+    const crypto = globalThis.crypto;
     const activationCode = crypto.randomUUID();
 
     // Set new expiry to 24 hours from now

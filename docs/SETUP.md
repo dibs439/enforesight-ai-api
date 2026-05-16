@@ -146,16 +146,15 @@ Create the default admin user:
 npx convex dev
 
 # In another terminal, initialize the admin user
-npx convex run users:initializeDefaultAdminSecure
+npx convex run userActions:createUserSecure -- '{
+  "firstName": "Admin",
+  "lastName": "User", 
+  "email": "you@email.here",
+  "password": "enter-a-password",
+  "role": "admin",
+  "active": true
+}'
 ```
-
-This creates:
-
-- **Username**: `admin`
-- **Password**: `admin123` (hashed with bcrypt)
-- **Role**: `admin`
-
-**⚠️ Security**: Change the default password immediately in production!
 
 ### 6. Start the Development Server
 
@@ -183,7 +182,7 @@ Test that everything is working:
 curl http://localhost:5011/health
 
 # Test 2: Login and get JWT token
-curl -X POST http://localhost:5011/api/admin/login \
+curl -X POST http://localhost:5011/api/v1/admin/users/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 

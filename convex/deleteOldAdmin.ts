@@ -7,7 +7,7 @@ export default mutation({
   args: {},
   handler: async ctx => {
     const users = await ctx.db.query('users').collect();
-    const oldAdmin = users.find(u => u.username === 'admin');
+    const oldAdmin = users.find(u => u.firstName === 'Admin');
 
     if (oldAdmin) {
       await ctx.db.delete(oldAdmin._id);
